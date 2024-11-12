@@ -5,7 +5,7 @@ G = -9.81 # [m/s^2] gravity accel
 M = 0.175 # [kg] mass of frisbee
 RHO = 1.23 # [kg/m^3] density of air
 AREA = 0.0568 # [m^2] ??? check this. area of frisbee
-CL0 = 0.1 # Lift coefficient at alpha = 0
+CL0 = 0.15 # Lift coefficient at alpha = 0
 CLA = 1.4 # Lift coefficient dependent on alpha
 CD0 = 0.08 # Drag coeffficient at alpha = 0
 CDA = 2.72 # Drag coefficient dependent on alpha
@@ -36,6 +36,16 @@ def simulate(y0, vx0, vy0, alpha, deltaT):
     return x, y, vx, vy, times
         
 if __name__ == "__main__":
-    x, y, vx, vy, times = simulate(1, 14, 0, 10, 0.001)
+    plt.figure()
+    x, y, vx, vy, times = simulate(1, 8.5, 0, 12, 0.001)
+    plt.ylabel("Height [m]")
+    plt.xlabel("Distance [m]")
     plt.scatter(x, y)
+    
+    plt.figure()
+    x, y, vx, vy, times = simulate(1, 14.7, 0, 12, 0.001)
+    plt.scatter(x, y)
+
+    plt.ylabel("Height [m]")
+    plt.xlabel("Distance [m]")
     plt.show()
