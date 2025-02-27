@@ -39,6 +39,12 @@ def calculate_length(joint_1, joint_2):
 
 
 def pose_detection(video_frame):
+    """
+    Track the player and perform pose detection to detect throw signal.
+
+    :param video_frame: opencv video frame
+    :return: None
+    """
 
     # Convert the image from BGR to RGB
     image_rgb = cv2.cvtColor(video_frame, cv2.COLOR_BGR2RGB)
