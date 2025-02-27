@@ -84,3 +84,34 @@ def imu_readings(bno):
     # print(f'Yaw: {yaw:0.6f} Pitch: {pitch:0.6f} Roll: {roll:0.6f}')
 
     return yaw, pitch, roll
+
+
+def smooth_readings(bno, yaw_buffer, pitch_buffer, roll_buffer):
+    """
+    Remove outliers by using a low pass filter.
+
+    :param bno: Initialized sensor
+    :param yaw_buffer: buffer to store yaw previous values
+    :param pitch_buffer: buffer to store pitch previous values
+    :param roll_buffer: buffer to store roll previous values
+    :return: averaged yaw, pitch, and roll values
+    """
+    try:
+        yaw, pitch, roll = imu_readings(bno)
+
+        yaw_buffer.append(yaw)
+        pitch_buffer.append(pitch)
+        roll_buffer.append(roll)
+
+        averaged_yaw = sum(yaw_buffer) / len(yaw_buffer)
+        averaged_pitch = sum(pitch_buffer) / len(pitch_buffer)
+        averaged_roll = sum(roll_buffer) / len(roll_buffer)
+        print(f'Yaw: {averaged_yaw:.6f} Pitch: {averaged_pitch:.6f} Roll: {averaged_roll:.6f}')
+
+        return averaged_yaw, averaged_pitch, averaged_roll
+
+    except ValueError as e:
+        print(f'Exception: IMU did not get data readings: {e}')
+    except TypeError as e:
+        print(f'Exception: {e}')
+    return None, None, None
