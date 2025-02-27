@@ -1,6 +1,3 @@
-import time
-
-
 def throwing_speed(distance):
     """
     Adjust motor speed based on distance obtained from CV
