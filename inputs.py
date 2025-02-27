@@ -1,0 +1,86 @@
+import time
+import board
+import busio
+from adafruit_bno08x import BNO_REPORT_ROTATION_VECTOR
+from adafruit_bno08x.i2c import BNO08X_I2C
+from scipy.spatial.transform import Rotation as R
+
+
+def initialize_imu():
+    """
+    Initialize IMU to get readings.
+
+    :return: IMU initialization
+    """
+    try:
+        # Initialize I2C
+        i2c = busio.I2C(board.SCL, board.SDA)
+        bno = BNO08X_I2C(i2c)
+
+        # Enable Quaternion readings for sensor
+        bno.enable_feature(BNO_REPORT_ROTATION_VECTOR)
+
+        return bno
+
+    except Exception as e:
+        print(f'IMU initialization failed: {e}')
+        return None
+
+
+def read_quaternion(bno):
+    """
+    Get Quaternion readings from IMU.
+
+    :param bno: Initialized sensor
+    :return: Quaternion readings
+    """
+
+    try:
+        quat_i, quat_j, quat_k, quat_real = bno.quaternion
+
+        return quat_i, quat_j, quat_k, quat_real
+    
+    except KeyError as e:
+        print(f'KeyError: IMU returned unexpected data format: {e}')
+    except OSError as e:
+        print(f'OSError: Possible I2C disconnection: {e}')
+    except Exception as e:
+        print(f'Unexpected error reading gyro: {e}')
+
+    return None
+
+
+def quaternion_to_euler(w, x, y, z):
+    """
+    Convert Quaternion readings to Euler angles.
+
+    :param w: scalar (real) part
+    :param x: vector (imaginary) part
+    :param y: vector (imaginary) part
+    :param z: vector (imaginary) part
+    :return: yaw, pitch, roll
+    """
+    
+    quaternion_readings = R.from_quat([x, y, z, w])
+    euler_angles = quaternion_readings.as_euler('zyx', degrees=True)
+
+    return euler_angles
+
+
+def imu_readings(bno):
+    """
+    Get IMU readings.
+
+    :param bno: Initialized sensor
+    :return: yaw, pitch, roll
+    """
+
+    # Get Quaternion readings from IMU
+    quat_i, quat_j, quat_k, quat_real = read_quaternion(bno)
+    # print(f'I: {quat_i:0.6f} J: {quat_j:0.6f} K: {quat_k:0.6f} Real: {quat_real:0.6f}')
+
+    # Convert Quaternion readings to Euler angles
+    yaw, pitch, roll = quaternion_to_euler(quat_i, quat_j, quat_k, quat_real)
+    # print(f'Yaw: {yaw:0.6f} Pitch: {pitch:0.6f} Roll: {roll:0.6f}')
+
+    return yaw, pitch, roll
