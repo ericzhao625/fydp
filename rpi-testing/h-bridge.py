@@ -1,37 +1,44 @@
 import RPi.GPIO as GPIO          
 from time import sleep
 
-in1 = 24
-in2 = 23
-en = 25
-temp1=1
+# Linear actuator 1
+in1 = 14
+in2 = 15
+enable_a = 18
+forward_1 = 1
 
-in3 = 17
-in4 = 27
-enb = 22
-temp2 = 1
+# Linear actuator 2
+in3 = 23
+in4 = 24
+enable_b = 25
+forward_2 = 1
 
+actuator_speed = 50
+
+# Set up GPIO to control linear actuator 1
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(in1,GPIO.OUT)
 GPIO.setup(in2,GPIO.OUT)
-GPIO.setup(en,GPIO.OUT)
+GPIO.setup(enable_a,GPIO.OUT)
 GPIO.output(in1,GPIO.LOW)
 GPIO.output(in2,GPIO.LOW)
-p=GPIO.PWM(en,1000)
-p.start(25)
+p1 = GPIO.PWM(enable_a,1000)
+p1.start(actuator_speed)
 
+# Set up GPIO to control linear actuator 2
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(in3,GPIO.OUT)
 GPIO.setup(in4,GPIO.OUT)
-GPIO.setup(enb,GPIO.OUT)
+GPIO.setup(enable_b,GPIO.OUT)
 GPIO.output(in3,GPIO.LOW)
 GPIO.output(in4,GPIO.LOW)
-p2=GPIO.PWM(enb,1000)
-p2.start(25)
+p2 = GPIO.PWM(enable_b,1000)
+p2.start(actuator_speed)
 
 print("\n")
 print("The default speed & direction of motor is LOW & Forward.....")
-print("r-run s-stop f-forward b-backward l-low m-medium h-high e-exit")
+print("r-run s-stop f-forward b-backward e-exit")
+print("r2-run s2-stop f2-forward b2-backward e-exit")
 print("\n")    
 
 while(1):
@@ -40,7 +47,7 @@ while(1):
 
     if x=='r':
         print("run")
-        if(temp1==1):
+        if(forward_1==1):
          GPIO.output(in1,GPIO.HIGH)
          GPIO.output(in2,GPIO.LOW)
          print("forward")
@@ -62,35 +69,19 @@ while(1):
         print("forward")
         GPIO.output(in1,GPIO.HIGH)
         GPIO.output(in2,GPIO.LOW)
-        temp1=1
+        forward_1=1
         x='z'
 
     elif x=='b':
         print("backward")
         GPIO.output(in1,GPIO.LOW)
         GPIO.output(in2,GPIO.HIGH)
-        temp1=0
+        forward_1=0
         x='z'
-
-    elif x=='l':
-        print("low")
-        p.ChangeDutyCycle(25)
-        x='z'
-
-    elif x=='m':
-        print("medium")
-        p.ChangeDutyCycle(50)
-        x='z'
-
-    elif x=='h':
-        print("high")
-        p.ChangeDutyCycle(75)
-        x='z'
-     
     
     elif x=='r2':
         print("run")
-        if(temp1==1):
+        if(forward_1==1):
          GPIO.output(in3,GPIO.HIGH)
          GPIO.output(in4,GPIO.LOW)
          print("forward")
@@ -112,29 +103,14 @@ while(1):
         print("forward")
         GPIO.output(in3,GPIO.HIGH)
         GPIO.output(in4,GPIO.LOW)
-        temp1=1
+        forward_2=1
         x='z'
 
     elif x=='b2':
         print("backward")
         GPIO.output(in3,GPIO.LOW)
         GPIO.output(in4,GPIO.HIGH)
-        temp1=0
-        x='z'
-
-    elif x=='l2':
-        print("low")
-        p2.ChangeDutyCycle(25)
-        x='z'
-
-    elif x=='m2':
-        print("medium")
-        p2.ChangeDutyCycle(50)
-        x='z'
-
-    elif x=='h2':
-        print("high")
-        p2.ChangeDutyCycle(75)
+        forward_2=0
         x='z'
 
     elif x=='e':
