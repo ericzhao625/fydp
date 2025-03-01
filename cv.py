@@ -4,6 +4,7 @@ import os
 import mediapipe as mp
 import psutil
 import time
+import RPi.GPIO as GPIO
 
 
 def monitor_memory():
@@ -101,6 +102,7 @@ def pose_detection(video_frame):
 
 
 if __name__ == "__main__":
+    pinLED = 17
     GPIO.setmode(GPIO.BCM)
     GPIO.setwarnings(False)
     GPIO.setup(pinLED, GPIO.OUT)
@@ -136,7 +138,8 @@ if __name__ == "__main__":
 
         pose_detection(frame)
 
-        cv2.putText(frame, monitor_memory(), (0, 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        # Display memory usage
+        # cv2.putText(frame, monitor_memory(), (0, 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
         # Show the video feed with the landmarks
         cv2.imshow("Pose Detection", frame)
