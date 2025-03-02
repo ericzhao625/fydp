@@ -29,3 +29,15 @@ class HBridge:
     def stop(self):
         GPIO.output(self.pin1,GPIO.LOW)
         GPIO.output(self.pin2,GPIO.LOW)
+
+    def stop_h_bridge(self):
+        print('Stopping h bridge control')
+
+        try:
+            self.pwm.stop()
+        except RuntimeError as e:
+            print(f"Warning: GPIO cleanup failed - {e}")
+        except Exception as e:
+            print(f"Unexpected error during cleanup: {e}")
+
+        print('H bridge control stopped')

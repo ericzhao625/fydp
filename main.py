@@ -25,6 +25,7 @@ if __name__ == '__main__':
     # Initialize throwing motor and solenoid
     throw = Throw()
 
+    # Initialize aiming
     aim = Aim()
 
     while True:
@@ -55,6 +56,7 @@ if __name__ == '__main__':
 
     imu.cleanup()
     throw.stop_motor()
+    aim.stop_h_bridge()
     cv.cap_release()
     cv2.destroyAllWindows()
     GPIO.cleanup()
