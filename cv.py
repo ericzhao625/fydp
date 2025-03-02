@@ -107,7 +107,6 @@ class CV():
 
     def estimate_distance(self, frame, joints):
 
-        # if joints['right arm'][0] and joints['right arm'][1]:
         try:
             length = self.calculate_length(joints['right arm'][0], joints['right arm'][1])
             distance_to_object = (4 * 280 * 720) / (length * 480 * 2.02) / 1000
@@ -117,11 +116,21 @@ class CV():
             return distance_to_object
 
         except TypeError as e:
-            print(f'TypeError: Joint Not Found {e}')
+            print(f'TypeError: Joints Not Found {e}')
         return None
 
-    def smooth_distance(self):
-        pass
+    def smooth_distance(self, frame, joints):
+        distance = self.estimate_distance(frame, joints)
+
+        if distance is not None:
+            self.distance_buffer.append(distance)
+        try:
+            averaged_distance = sum(self.distance_buffer) / len(self.distance_buffer)
+            return averaged_distance
+
+        except ZeroDivisionError as e:
+            print('No distance values recorded yet.')
+        return None
 
     def pose_estimation(self, frame, joints):
         if joints is None:# or 'body' not in joints or 'nose' not in joints:
@@ -165,7 +174,8 @@ if __name__ == "__main__":
         frame_rgb, pose_results = cv.process_frame(frame)
         joints = cv.extract_joints(pose_results)
 
-        distance = cv.estimate_distance(frame, joints)
+        # distance = cv.estimate_distance(frame, joints)
+        distance = cv.smooth_distance(frame, joints)
         print(f'Distance: {distance}m')
         
         pose_estimation = cv.pose_estimation(frame, joints)
