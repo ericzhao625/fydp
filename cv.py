@@ -117,7 +117,17 @@ class CV():
                     pose_results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.RIGHT_WRIST],
                     pose_results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.RIGHT_ELBOW]
                 ),
-                'nose': pose_results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.NOSE]
+                'nose': pose_results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.NOSE],
+                'left leg': (
+                    pose_results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.LEFT_HIP],
+                    pose_results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.LEFT_KNEE],
+                    pose_results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.LEFT_ANKLE]
+                ),
+                'right leg': (
+                    pose_results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.RIGHT_HIP],
+                    pose_results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.RIGHT_KNEE],
+                    pose_results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.RIGHT_ANKLE]
+                )
             }
 
             return joints
@@ -159,8 +169,22 @@ class CV():
             TypeError: If joints is None (joints are missing)
         """
         try:
-            length = self.calculate_length(joints['right arm'][0], joints['right arm'][1])
-            distance_to_object = (4 * 280 * 720) / (length * 480 * 2.02) / 1000            
+            average_torso_length = (
+                self.calculate_length(joints['body'][0], joints['body'][2]) +
+                self.calculate_length(joints['body'][0], joints['body'][2])
+            )/2
+            average_femur_length = (
+                self.calculate_length(joints['left leg'][0], joints['left leg'][1]) +
+                self.calculate_length(joints['right leg'][0], joints['right leg'][1])
+            )/2
+            average_tibia_length = (
+                self.calculate_length(joints['left leg'][1], joints['left leg'][2]) +
+                self.calculate_length(joints['right leg'][1], joints['right leg'][2])
+            )/2
+            height = average_torso_length + average_femur_length + average_ibia_length
+            print(f'Height: {height}')
+
+            distance_to_object = (constants.CAMERA_FOCAL_LENGTH * constants.USER_HEIGHT * constants.HEIGHT_TO_SHOULDERS * constants.CAMERA_PIXEL_HEIGHT) / ((length * constants.CAMERA_PIXEL_HEIGHT) * constants.CAMERA_SENSOR_HEIGHT) / 1000            
 
             return distance_to_object
 
