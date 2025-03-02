@@ -12,9 +12,9 @@ class IMU:
         """
         Initialize the IMU sensor and buffers for smoothing.
         """
-        self.yaw_buffer = deque(maxlen=constants.BUFFER_SIZE)
-        self.pitch_buffer = deque(maxlen=constants.BUFFER_SIZE)
-        self.roll_buffer = deque(maxlen=constants.BUFFER_SIZE)
+        self.yaw_buffer = deque(maxlen=constants.IMU_BUFFER_SIZE)
+        self.pitch_buffer = deque(maxlen=constants.IMU_BUFFER_SIZE)
+        self.roll_buffer = deque(maxlen=constants.IMU_BUFFER_SIZE)
     
         self.bno = self.initialize_imu()
 

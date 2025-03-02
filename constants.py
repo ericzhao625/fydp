@@ -1,11 +1,34 @@
+# IMU
+IMU_BUFFER_SIZE = 10
+
+# Linear Actuators
+LINEAR_ACTUATOR_DC = 50
+# Linear Actuator 1
+IN1 = 14
+IN2 = 15
+ENABLE_A = 18
+
+# Linear Actuator 2
+IN3 = 23
+IN4 = 24
+ENABLE_B = 25
+
+# Linear Actuator 3
+IN5 = 10
+IN6 = 9
+ENABLE_C = 11
+
+# Aiming Motor
+IN7 = 17
+IN8 = 27
+ENABLE_D = 22
+
 # Throwing
-PWM_PIN = 12  # Physical pin 33
+PWM_PIN = 12
 PWM_FREQ = 500
 PWM_INIT_DC = 0
 
 # Computer vision
-PIN_LED = 17
 CENTER = 0.5
 POSE_TOLERANCE = 0.2
-
-BUFFER_SIZE = 10
+CV_BUFFER_SIZE = 10

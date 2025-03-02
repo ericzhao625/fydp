@@ -30,7 +30,7 @@ class CV():
             self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
             self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
-        self.distance_buffer = deque(maxlen=constants.BUFFER_SIZE)
+        self.distance_buffer = deque(maxlen=constants.CV_BUFFER_SIZE)
 
     def read_frame(self):
         if self.cap is None:
