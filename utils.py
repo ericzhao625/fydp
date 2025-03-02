@@ -52,13 +52,17 @@ def display_metrics(frame, distance, pwm_value, pose_estimation):
     """
     if distance and pwm_value:
         cv2.putText(
-            frame, f'Estimated Distance: {distance:.2f}m, PWM: {pwm_value:.2f}%',
+            frame, f'Estimated Distance: {distance:.2f}m',
+            (0, 400), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2
+        )
+        cv2.putText(
+            frame, f'PWM: {pwm_value:.2f}%',
             (0, 450), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2
         )
     elif distance:
         cv2.putText(
             frame, f'Estimated Distance: {distance:.2f}m',
-            (0, 450), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2
+            (0, 400), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2
         )
 
     cv2.putText(
