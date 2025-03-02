@@ -40,13 +40,12 @@ def calculate_length(joint_1, joint_2):
     return length
 
 
-# In your main script
-from constants import get_pose_model
-
 def pose_detection(mp_pose, pose, video_frame):
     """
     Track the player and perform pose detection to detect throw signal.
     """
+
+    distance_to_object = None
 
     # Convert the image from BGR to RGB
     image_rgb = cv2.cvtColor(video_frame, cv2.COLOR_BGR2RGB)
@@ -88,6 +87,8 @@ def pose_detection(mp_pose, pose, video_frame):
         else:
             cv2.putText(video_frame, "POSE: can't find torso landmarks for person", (0, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
             GPIO.output(constants.PIN_LED, GPIO.LOW)
+
+    return distance_to_object
 
 
 if __name__ == "__main__":

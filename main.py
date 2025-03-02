@@ -54,8 +54,9 @@ if __name__ == '__main__':
         if not ret:
             break
 
-        pose_detection(mp_pose, pose, frame)
+        distance = pose_detection(mp_pose, pose, frame)
 
+        print(distance)
         # Display memory usage
         # cv2.putText(frame, monitor_memory(), (0, 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
