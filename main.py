@@ -38,7 +38,7 @@ if __name__ == '__main__':
         # print(f'Pose Estimation: {pose_estimation}')
 
         display_metrics(frame, distance, pwm_value, pose_estimation)
-        
+
         yaw, pitch, roll = imu.smooth_readings()
 
         # Show the video feed with the landmarks
@@ -47,5 +47,6 @@ if __name__ == '__main__':
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
+    throw.stop()
     cv.cap_release()
     cv2.destroyAllWindows()
