@@ -2,6 +2,7 @@
 IMU_BUFFER_SIZE = 10
 
 # Linear Actuators
+LINEAR_ACTUATOR_FREQ = 100
 LINEAR_ACTUATOR_DC = 50
 # Linear Actuator 1
 IN1 = 14
@@ -19,6 +20,8 @@ IN6 = 9
 ENABLE_C = 11
 
 # Aiming Motor
+AIMING_MOTOR_FREQ = 100
+AIMING_MOTOR_DC = 10
 IN7 = 17
 IN8 = 27
 ENABLE_D = 22
