@@ -86,7 +86,7 @@ class Throw:
         pwm_value = self.distance_to_pwm(distance)
         self.pwm.ChangeDutyCycle(pwm_value)
         if distance and pwm_value:
-            print(f"Distance: {distance:.2f}m, PWM: {distance:.2f}%")
+            print(f"Distance: {distance:.2f}m, PWM: {pwm_value:.2f}%")
 
         return pwm_value
 
