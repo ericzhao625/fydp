@@ -1,9 +1,5 @@
-import time
-from collections import deque
 import RPi.GPIO as GPIO
-
 import cv2
-import mediapipe as mp
 
 from imu import IMU
 from throwing import Throw
@@ -11,10 +7,10 @@ from cv import CV
 from utils import display_metrics
 from aiming import Aim
 
-import constants
-
 
 if __name__ == '__main__':
+    # OpenCV window
+    display = True
 
     # Initialize IMU
     imu = IMU()
@@ -28,35 +24,54 @@ if __name__ == '__main__':
     # Initialize aiming
     aim = Aim()
 
-    while True:
-        frame = cv.read_frame()
-        frame_rgb, pose_results = cv.process_frame(frame)
-        joints = cv.extract_joints(pose_results)
+    try:
+        while True:
+            # Get IMU readings
+            yaw, pitch, roll = imu.smooth_readings()
 
-        distance = cv.smooth_distance(frame, joints)
-        # print(f'Distance: {distance}m')
+            # Capture frame
+            frame = cv.read_frame()
+            # Convert frame to RGB and get mediapipe output
+            frame_rgb, pose_results = cv.process_frame(frame)
+            # Get the joints of interest
+            joints = cv.extract_joints(pose_results)
 
-        pwm_value = throw.update_motor_speed(distance)
+            # Get player distance
+            distance = cv.smooth_distance(frame, joints)
+            # print(f'Distance: {distance}m')
 
-        pose_estimation = cv.pose_estimation(frame, joints)
-        # print(f'Pose Estimation: {pose_estimation}')
+            # Update throwing motor speed
+            pwm_value = throw.update_motor_speed(distance)
 
-        aim.track_player(pose_estimation)
-        throw.push_frisbee(pose_estimation)
+            # Get player pose
+            pose_estimation = cv.pose_estimation(frame, joints)
+            # print(f'Pose Estimation: {pose_estimation}')
 
-        display_metrics(frame, distance, pwm_value, pose_estimation)
+            # Track player
+            aim.track_player(pose_estimation)
 
-        yaw, pitch, roll = imu.smooth_readings()
+            # Release frisbee
+            throw.push_frisbee(pose_estimation)
 
-        # Show the video feed with the landmarks
-        cv2.imshow("Frisbeast Vision", frame)
+            if display:
+                # Display metrics
+                display_metrics(frame, distance, pwm_value, pose_estimation)
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+                # Show the video feed with the landmarks
+                cv2.imshow("Frisbeast Vision", frame)
 
-    imu.cleanup()
-    throw.stop_motor()
-    aim.stop_h_bridge()
-    cv.cap_release()
-    cv2.destroyAllWindows()
-    GPIO.cleanup()
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+
+    except KeyboardInterrupt:
+        print("Keyboard Interrupt detected! Cleaning up resources.")
+
+    finally:
+        # Cleanup resources
+        imu.cleanup()
+        throw.stop_motor()
+        aim.stop_h_bridge()
+        cv.cap_release()
+        cv2.destroyAllWindows()
+        GPIO.cleanup()
+        print("Cleanup complete. Exiting safely.")
