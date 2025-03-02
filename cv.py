@@ -109,9 +109,7 @@ class CV():
 
         try:
             length = self.calculate_length(joints['right arm'][0], joints['right arm'][1])
-            distance_to_object = (4 * 280 * 720) / (length * 480 * 2.02) / 1000
-            
-            # cv2.putText(frame, f'Estimated Distance: {distance_to_object:.2f}m', (0, 450), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            distance_to_object = (4 * 280 * 720) / (length * 480 * 2.02) / 1000            
 
             return distance_to_object
 
@@ -144,19 +142,19 @@ class CV():
                 if any(element.y < joints['nose'].y for element in joints['right arm']) or \
                    any(element.y < joints['nose'].y for element in joints['left arm']):
 
-                    cv2.putText(frame, 'Pose Estimation: centered and throw identified', (0, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                    # cv2.putText(frame, 'Pose Estimation: centered and throw identified', (0, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
                     return 'centered and throw identified'
                 else:
-                    cv2.putText(frame, 'Pose Estimation: centered', (0, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                    # cv2.putText(frame, 'Pose Estimation: centered', (0, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
                     return 'centered'
             else:
                 direction = 'move left' if body_position < constants.CENTER else 'move right'
-                cv2.putText(frame, f'Pose Estimation: {direction}', (0, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                # cv2.putText(frame, f'Pose Estimation: {direction}', (0, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
                 return direction
         else:
-            cv2.putText(frame, f'Pose Estimation: torso not found', (0, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            # cv2.putText(frame, f'Pose Estimation: torso not found', (0, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
             return None
 
