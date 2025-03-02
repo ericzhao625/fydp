@@ -9,6 +9,7 @@ from imu import IMU
 from throwing import Throw
 from cv import CV
 from utils import display_metrics
+from aiming import Aim
 
 import constants
 
@@ -24,6 +25,8 @@ if __name__ == '__main__':
     # Initialize throwing motor and solenoid
     throw = Throw()
 
+    aim = Aim()
+
     while True:
         frame = cv.read_frame()
         frame_rgb, pose_results = cv.process_frame(frame)
@@ -37,6 +40,7 @@ if __name__ == '__main__':
         pose_estimation = cv.pose_estimation(frame, joints)
         # print(f'Pose Estimation: {pose_estimation}')
 
+        aim.track_player(pose_estimation)
         throw.push_frisbee(pose_estimation)
 
         display_metrics(frame, distance, pwm_value, pose_estimation)
