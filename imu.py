@@ -4,17 +4,17 @@ from adafruit_bno08x import BNO_REPORT_ROTATION_VECTOR
 from adafruit_bno08x.i2c import BNO08X_I2C
 from scipy.spatial.transform import Rotation as R
 from collections import deque
+import constants
 
 
 class IMU:
-    def __init__(self, buffer_size=10):
+    def __init__(self):
         """
         Initialize the IMU sensor and buffers for smoothing.
         """
-        self.buffer_size = buffer_size
-        self.yaw_buffer = deque(maxlen=buffer_size)
-        self.pitch_buffer = deque(maxlen=buffer_size)
-        self.roll_buffer = deque(maxlen=buffer_size)
+        self.yaw_buffer = deque(maxlen=constants.BUFFER_SIZE)
+        self.pitch_buffer = deque(maxlen=constants.BUFFER_SIZE)
+        self.roll_buffer = deque(maxlen=constants.BUFFER_SIZE)
     
         self.bno = self.initialize_imu()
 
