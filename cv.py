@@ -5,123 +5,177 @@ import mediapipe as mp
 import time
 import RPi.GPIO as GPIO
 import constants
+from collections import deque
 
 
+class CV():
+    def __init__(self):
+        # Initialize Mediapipe
+        try:
+            self.mp_pose = mp.solutions.pose
+            self.pose = self.mp_pose.Pose()
 
-def calculate_length(joint_1, joint_2):
-    """
-    Calculate the distance between 2 joints
+        except Exception as e:
+            print(f"Error initializing Mediapipe Pose: {e}")
+            self.pose = None
 
-    :param joint_1: joint 1
-    :param joint_2: joint 2
-    :return: distance as a normalized value based on the camera feed
-    """
-    joint_1 = np.array([joint_1.x, joint_1.y, joint_1.z])
-    joint_2 = np.array([joint_2.x, joint_2.y, joint_2.z])
+        # OpenCV
+        # Initialize camera
+        self.cap = cv2.VideoCapture(0)  # Use 0 for the default camera
+        
+        if not self.cap.isOpened():
+            print("Error: Could not open camera.")
+            self.cap = None  # Prevent further errors if camera fails
+        else:
+            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
-    joint_2_to_1 = joint_1 - joint_2
+        self.distance_buffer = deque(maxlen=constants.BUFFER_SIZE)
 
-    length = np.linalg.norm(joint_2_to_1)
+    def read_frame(self):
+        if self.cap is None:
+            print("Camera not initialized.")
+            return None
+        
+        ret, frame = self.cap.read()
+        if not ret:
+            print("Error: Failed to capture frame.")
+            return None
 
-    return length
+        return frame
 
 
-def pose_detection(mp_pose, pose, video_frame):
-    """
-    Track the player and perform pose detection to detect throw signal.
-    """
+    def process_frame(self, frame):
+        if self.pose is None:
+            print("Pose model not initialized.")
+            return None
 
-    distance_to_object = None
+        try:
+            # Convert the image from BGR to RGB
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            # Get pose model results
+            pose_results = self.pose.process(frame_rgb)
 
-    # Convert the image from BGR to RGB
-    image_rgb = cv2.cvtColor(video_frame, cv2.COLOR_BGR2RGB)
+            return frame_rgb, pose_results
 
-    # Process the image and get pose landmarks
-    results = pose.process(image_rgb)
+        except Exception as e:
+            print(f"Error processing frame: {e}")
+            return None, None
 
-    if results.pose_landmarks:
-        body = (results.pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_SHOULDER],
-                results.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_SHOULDER],
-                results.pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_HIP],
-                results.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_HIP])
+    def extract_joints(self, pose_results):
 
-        left_arm = (results.pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_WRIST],
-                    results.pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_ELBOW])
-        right_arm = (results.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_WRIST],
-                     results.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_ELBOW])
-        nose = results.pose_landmarks.landmark[mp_pose.PoseLandmark.NOSE]
+        if pose_results.pose_landmarks:
 
-        length = calculate_length(right_arm[0], right_arm[1])
-        distance_to_object = (4 * 280 * 720) / (length * 480 * 2.02) / 1000
-        cv2.putText(video_frame, f'Estimated Distance: {distance_to_object:.2f}', (0, 450), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            joints = {
+                'body': (
+                    pose_results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.LEFT_SHOULDER],
+                    pose_results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.RIGHT_SHOULDER],
+                    pose_results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.LEFT_HIP],
+                    pose_results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.RIGHT_HIP]
+                ),
+                'left arm': (
+                    pose_results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.LEFT_WRIST],
+                    pose_results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.LEFT_ELBOW]
+                ),
+                'right arm': (
+                    pose_results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.RIGHT_WRIST],
+                    pose_results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.RIGHT_ELBOW]
+                ),
+                'nose': pose_results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.NOSE]
+            }
+
+            return joints
+
+        return None
+
+    def calculate_length(self, joint_1, joint_2):
+        """
+        Calculate the distance between 2 joints
+
+        :param joint_1: joint 1
+        :param joint_2: joint 2
+        :return: distance as a normalized value based on the camera feed
+        """
+        joint_1 = np.array([joint_1.x, joint_1.y, joint_1.z])
+        joint_2 = np.array([joint_2.x, joint_2.y, joint_2.z])
+
+        joint_2_to_1 = joint_1 - joint_2
+
+        length = np.linalg.norm(joint_2_to_1)
+
+        return length
+
+    def estimate_distance(self, frame, joints):
+
+        # if joints['right arm'][0] and joints['right arm'][1]:
+        try:
+            length = self.calculate_length(joints['right arm'][0], joints['right arm'][1])
+            distance_to_object = (4 * 280 * 720) / (length * 480 * 2.02) / 1000
+            
+            cv2.putText(frame, f'Estimated Distance: {distance_to_object:.2f}m', (0, 450), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+            return distance_to_object
+
+        except TypeError as e:
+            print(f'TypeError: Joint Not Found {e}')
+        return None
+
+    def smooth_distance(self):
+        pass
+
+    def pose_estimation(self, frame, joints):
+        if joints is None:# or 'body' not in joints or 'nose' not in joints:
+            return None
 
         # Check for centering
-        if all(element.visibility > 0.1 for element in body):
-            body_position = sum(element.x for element in body) / len(body)
+        if all(element.visibility > 0.1 for element in joints['body']):
+            body_position = sum(element.x for element in joints['body']) / len(joints['body'])
+            
             if constants.CENTER - constants.POSE_TOLERANCE < body_position < constants.CENTER + constants.POSE_TOLERANCE:
-                cv2.putText(video_frame, 'POSE: centered enough', (0, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                if any(element.y < joints['nose'].y for element in joints['right arm']) or \
+                   any(element.y < joints['nose'].y for element in joints['left arm']):
 
-                if any(element.y < nose.y for element in left_arm) or any(element.y < nose.y for element in right_arm):
-                    cv2.putText(video_frame, 'POSE: throw signal identified', (0, 90), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-                    GPIO.output(constants.PIN_LED, GPIO.HIGH)
+                    cv2.putText(frame, 'Pose Estimation: centered and throw identified', (0, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+                    return 'centered and throw identified'
                 else:
-                    GPIO.output(constants.PIN_LED, GPIO.LOW)
+                    cv2.putText(frame, 'Pose Estimation: centered', (0, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+                    return 'centered'
             else:
                 direction = 'move left' if body_position < constants.CENTER else 'move right'
-                cv2.putText(video_frame, f'POSE: {direction}', (0, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-                GPIO.output(constants.PIN_LED, GPIO.LOW)
+                cv2.putText(frame, f'Pose Estimation: {direction}', (0, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                return direction
         else:
-            cv2.putText(video_frame, "POSE: can't find torso landmarks for person", (0, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-            GPIO.output(constants.PIN_LED, GPIO.LOW)
+            cv2.putText(frame, f'Pose Estimation: torso not found', (0, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-    return distance_to_object
+            return None
+
+    def cap_release(self):
+        self.cap.release()
 
 
 if __name__ == "__main__":
-    pinLED = 17
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setwarnings(False)
-    GPIO.setup(pinLED, GPIO.OUT)
 
-    # MediaPipe
-    center = 0.5
-    pose_tolerance = 0.2
+    cv = CV()
 
-    # Initialize MediaPipe Pose
-    mp_pose = mp.solutions.pose
-    pose = mp_pose.Pose()
+    while True:
 
-    # Initialize camera
-    cap = cv2.VideoCapture(0)  # Use 0 for the default camera
+        frame = cv.read_frame()
+        frame_rgb, pose_results = cv.process_frame(frame)
+        joints = cv.extract_joints(pose_results)
 
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-
-    cap.set(cv2.CAP_PROP_FPS, 5)  # Attempt to set FPS to 30
-    fps = cap.get(cv2.CAP_PROP_FPS)  # Check if the setting was successful
-    print(f"Camera FPS: {fps}")
-
-    prev_time = 0
-
-    while cap.isOpened():
-        ret, frame = cap.read()
-
-        # frame = cv2.resize(frame, (640, 480))
-        # Flip the frame horizontally
-        # flipped_frame = cv2.flip(frame, 1)
-        if not ret:
-            break
-
-        pose_detection(mp_pose, pose, frame)
-
-        # Display memory usage
-        # cv2.putText(frame, monitor_memory(), (0, 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        distance = cv.estimate_distance(frame, joints)
+        print(f'Distance: {distance}m')
+        
+        pose_estimation = cv.pose_estimation(frame, joints)
+        print(f'Pose Estimation: {pose_estimation}')
 
         # Show the video feed with the landmarks
-        cv2.imshow("Pose Detection", frame)
+        cv2.imshow("Frisbeast Vision", frame)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-    cap.release()
+    cv.cap_release()
     cv2.destroyAllWindows()
