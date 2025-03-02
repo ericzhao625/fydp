@@ -16,7 +16,7 @@ class IMU:
         self.pitch_buffer = deque(maxlen=constants.IMU_BUFFER_SIZE)
         self.roll_buffer = deque(maxlen=constants.IMU_BUFFER_SIZE)
     
-        self.bno = self.initialize_imu()
+        self.i2c, self.bno = self.initialize_imu()
 
     def initialize_imu(self):
         """
@@ -32,7 +32,7 @@ class IMU:
             # Enable Quaternion readings for sensor
             bno.enable_feature(BNO_REPORT_ROTATION_VECTOR)
 
-            return bno
+            return i2c, bno
 
         except Exception as e:
             print(f'IMU initialization failed: {e}')
@@ -123,3 +123,13 @@ class IMU:
         except TypeError as e:
             print(f'Exception: {e}')
         return None, None, None
+
+    def cleanup(self):
+        print('Stopping IMU')
+        
+        try:
+            self.i2c.deinit()
+        except Exception as e:
+            print(f"Error deinitializing IMU: {e}")
+
+        print('IMU stopped')

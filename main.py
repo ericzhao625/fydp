@@ -47,6 +47,7 @@ if __name__ == '__main__':
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-    throw.stop()
+    imu.cleanup()
+    throw.stop_motor()
     cv.cap_release()
     cv2.destroyAllWindows()

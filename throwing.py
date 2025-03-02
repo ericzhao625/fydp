@@ -45,6 +45,6 @@ class Throw:
         return pwm_value
 
     def stop_motor(self):
-        self.pwm.stop()
+        self.pwm_pin.stop()
         GPIO.cleanup()
 
