@@ -5,6 +5,7 @@ import mediapipe as mp
 import psutil
 import time
 import RPi.GPIO as GPIO
+import constants
 
 
 def monitor_memory():
@@ -39,12 +40,12 @@ def calculate_length(joint_1, joint_2):
     return length
 
 
-def pose_detection(video_frame):
+# In your main script
+from constants import get_pose_model
+
+def pose_detection(mp_pose, pose, video_frame):
     """
     Track the player and perform pose detection to detect throw signal.
-
-    :param video_frame: opencv video frame
-    :return: None
     """
 
     # Convert the image from BGR to RGB
@@ -54,51 +55,39 @@ def pose_detection(video_frame):
     results = pose.process(image_rgb)
 
     if results.pose_landmarks:
-        # Draw the landmarks on the image
-        # mp.solutions.drawing_utils.draw_landmarks(video_frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
-
         body = (results.pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_SHOULDER],
                 results.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_SHOULDER],
                 results.pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_HIP],
                 results.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_HIP])
 
-        # Check for throw signal
         left_arm = (results.pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_WRIST],
                     results.pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_ELBOW])
         right_arm = (results.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_WRIST],
-                    results.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_ELBOW])
+                     results.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_ELBOW])
         nose = results.pose_landmarks.landmark[mp_pose.PoseLandmark.NOSE]
 
         length = calculate_length(right_arm[0], right_arm[1])
-
         distance_to_object = (4 * 280 * 720) / (length * 480 * 2.02) / 1000
         cv2.putText(video_frame, f'Estimated Distance: {distance_to_object:.2f}', (0, 450), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
         # Check for centering
         if all(element.visibility > 0.1 for element in body):
             body_position = sum(element.x for element in body) / len(body)
-            if center - pose_tolerance < body_position < center + pose_tolerance:
+            if constants.CENTER - constants.POSE_TOLERANCE < body_position < constants.CENTER + constants.POSE_TOLERANCE:
                 cv2.putText(video_frame, 'POSE: centered enough', (0, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-                if all(element.visibility > 0.1 for element in left_arm) or all(element.visibility > 0.1 for element in right_arm):
-                    if any(element.y < nose.y for element in left_arm) or any(element.y < nose.y for element in right_arm):
-                        cv2.putText(video_frame, 'POSE: throw signal identified', (0, 90), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-                        GPIO.output(pinLED, GPIO.HIGH)
-
-                    else:
-                        GPIO.output(pinLED, GPIO.LOW)
-
-            elif body_position < center + pose_tolerance:
-                cv2.putText(video_frame, 'POSE: move left', (0, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-                GPIO.output(pinLED, GPIO.LOW)
-
-            elif body_position > center - pose_tolerance:
-                cv2.putText(video_frame, 'POSE: move right', (0, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-                GPIO.output(pinLED, GPIO.LOW)
-
+                if any(element.y < nose.y for element in left_arm) or any(element.y < nose.y for element in right_arm):
+                    cv2.putText(video_frame, 'POSE: throw signal identified', (0, 90), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                    GPIO.output(constants.PIN_LED, GPIO.HIGH)
+                else:
+                    GPIO.output(constants.PIN_LED, GPIO.LOW)
+            else:
+                direction = 'move left' if body_position < constants.CENTER else 'move right'
+                cv2.putText(video_frame, f'POSE: {direction}', (0, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                GPIO.output(constants.PIN_LED, GPIO.LOW)
         else:
             cv2.putText(video_frame, "POSE: can't find torso landmarks for person", (0, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-            GPIO.output(pinLED, GPIO.LOW)
+            GPIO.output(constants.PIN_LED, GPIO.LOW)
 
 
 if __name__ == "__main__":
@@ -136,7 +125,7 @@ if __name__ == "__main__":
         if not ret:
             break
 
-        pose_detection(frame)
+        pose_detection(mp_pose, pose, frame)
 
         # Display memory usage
         # cv2.putText(frame, monitor_memory(), (0, 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
