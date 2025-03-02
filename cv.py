@@ -111,7 +111,7 @@ class CV():
             length = self.calculate_length(joints['right arm'][0], joints['right arm'][1])
             distance_to_object = (4 * 280 * 720) / (length * 480 * 2.02) / 1000
             
-            cv2.putText(frame, f'Estimated Distance: {distance_to_object:.2f}m', (0, 450), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            # cv2.putText(frame, f'Estimated Distance: {distance_to_object:.2f}m', (0, 450), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
             return distance_to_object
 

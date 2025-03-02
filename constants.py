@@ -24,9 +24,17 @@ IN8 = 27
 ENABLE_D = 22
 
 # Throwing
+# Motor
 PWM_PIN = 12
 PWM_FREQ = 500
 PWM_INIT_DC = 0
+MIN_DISTANCE = 5
+MAX_DISTANCE = 36
+MIN_PWM = 10
+MAX_PWM = 50
+
+# Solenoid
+SOLENOID_PIN = 26
 
 # Computer vision
 CENTER = 0.5

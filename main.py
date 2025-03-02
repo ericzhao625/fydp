@@ -6,7 +6,7 @@ import cv2
 import mediapipe as mp
 
 from imu import IMU
-from throwing import throwing_speed
+from throwing import Throw
 from cv import CV
 
 import constants
@@ -20,6 +20,9 @@ if __name__ == '__main__':
     # Initialize CV
     cv = CV()
 
+    # Initialize throwing motor and solenoid
+    throw = Throw()
+
     while True:
         frame = cv.read_frame()
         frame_rgb, pose_results = cv.process_frame(frame)
@@ -28,6 +31,11 @@ if __name__ == '__main__':
         distance = cv.smooth_distance(frame, joints)
         # print(f'Distance: {distance}m')
 
+        pwm_value = throw.update_motor_speed(distance)
+        try:
+            cv2.putText(frame, f'Estimated Distance: {distance:.2f}m, PWM: {pwm_value:.2f}%', (0, 450), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        except TypeError as e:
+            pass
         pose_estimation = cv.pose_estimation(frame, joints)
         # print(f'Pose Estimation: {pose_estimation}')
 
