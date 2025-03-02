@@ -3,7 +3,33 @@ import constants
 import time
 
 class Throw:
+    """
+    Controls the frisbee throwing mechanism.
+
+    This class manages motor speed based on estimated distance and triggers a solenoid
+    to push the frisbee when the correct pose is detected.
+
+    Attributes:
+        pwm_pin (int): GPIO pin for PWM control of the motor.
+        min_distance (float): Minimum distance threshold for scaling PWM.
+        max_distance (float): Maximum distance threshold for scaling PWM.
+        min_pwm (float): Minimum PWM duty cycle percentage.
+        max_pwm (float): Maximum PWM duty cycle percentage.
+        solenoid_pin (int): GPIO pin controlling the solenoid.
+        cool_down (float): Time in seconds before solenoid can be activated again.
+        last_activation_time (float): Timestamp of the last solenoid activation.
+
+    Methods:
+        distance_to_pwm(distance): Converts distance to PWM duty cycle.
+        update_motor_speed(distance): Updates motor speed based on distance.
+        push_frisbee(pose_estimation): Activates solenoid if throwing conditions are met.
+        stop_motor(): Stops the throwing motor and handles cleanup.
+    """
+
     def __init__(self):
+        """
+        Initializes the Throw class with GPIO setup for motor and solenoid control.
+        """
         self.pwm_pin = constants.PWM_PIN
         self.min_distance = constants.MIN_DISTANCE
         self.max_distance = constants.MAX_DISTANCE
@@ -27,10 +53,13 @@ class Throw:
 
     def distance_to_pwm(self, distance):
         """
-        Calculate PWM duty cycle based on distance obtained from CV
+        Converts estimated distance to an appropriate PWM duty cycle.
 
-        :param distance: distance
-        :return: PWM duty cycle
+        Args:
+            distance (float): The estimated distance from CV in meters.
+
+        Returns:
+            float: PWM duty cycle percentage based on the distance.
         """
         if distance:
             if distance < self.min_distance:
@@ -43,6 +72,15 @@ class Throw:
         return 0
 
     def update_motor_speed(self, distance):
+        """
+        Updates the motor speed based on the estimated distance.
+
+        Args:
+            distance (float): The estimated distance in meters.
+
+        Returns:
+            float: The calculated PWM duty cycle value.
+        """
         pwm_value = self.distance_to_pwm(distance)
         self.pwm.ChangeDutyCycle(pwm_value)
         if distance and pwm_value:
@@ -51,6 +89,12 @@ class Throw:
         return pwm_value
 
     def push_frisbee(self, pose_estimation):
+        """
+        Activates the solenoid to push the frisbee if the correct pose is detected.
+
+        Args:
+            pose_estimation (str): The detected pose state from CV.
+        """
         current_time = time.time()
         if pose_estimation == 'centered and throw identified':
             if current_time - self.last_activation_time >= self.cool_down:
@@ -65,6 +109,9 @@ class Throw:
                 print("Cooldown active, solenoid not triggered.")
 
     def stop_motor(self):
+        """
+        Stops the throwing motor.
+        """
         print('Stopping throwing motor')
 
         try:
