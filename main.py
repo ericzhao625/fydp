@@ -51,3 +51,4 @@ if __name__ == '__main__':
     throw.stop_motor()
     cv.cap_release()
     cv2.destroyAllWindows()
+    GPIO.cleanup()

@@ -36,7 +36,7 @@ class IMU:
 
         except Exception as e:
             print(f'IMU initialization failed: {e}')
-            return None
+            return None, None
 
 
     def read_quaternion(self):
@@ -126,7 +126,7 @@ class IMU:
 
     def cleanup(self):
         print('Stopping IMU')
-        
+
         try:
             self.i2c.deinit()
         except Exception as e:
