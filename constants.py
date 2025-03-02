@@ -35,6 +35,7 @@ MAX_PWM = 50
 
 # Solenoid
 SOLENOID_PIN = 26
+COOL_DOWN = 5
 
 # Computer vision
 CENTER = 0.5

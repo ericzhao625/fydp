@@ -37,6 +37,8 @@ if __name__ == '__main__':
         pose_estimation = cv.pose_estimation(frame, joints)
         # print(f'Pose Estimation: {pose_estimation}')
 
+        throw.push_frisbee(pose_estimation)
+
         display_metrics(frame, distance, pwm_value, pose_estimation)
 
         yaw, pitch, roll = imu.smooth_readings()
