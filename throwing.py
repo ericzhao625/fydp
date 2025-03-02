@@ -1,6 +1,8 @@
 import RPi.GPIO as GPIO
-import constants
 import time
+
+import constants
+
 
 class Throw:
     """

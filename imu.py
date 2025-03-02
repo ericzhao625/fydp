@@ -1,9 +1,10 @@
-import board
-import busio
 from adafruit_bno08x import BNO_REPORT_ROTATION_VECTOR
 from adafruit_bno08x.i2c import BNO08X_I2C
-from scipy.spatial.transform import Rotation as R
+import board
+import busio
 from collections import deque
+from scipy.spatial.transform import Rotation as R
+
 import constants
 
 

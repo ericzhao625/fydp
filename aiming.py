@@ -1,5 +1,6 @@
-from h_bridge import HBridge
 import constants
+from h_bridge import HBridge
+
 
 class Aim(HBridge):
     """

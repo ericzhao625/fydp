@@ -1,11 +1,12 @@
+from collections import deque
 import cv2
+import mediapipe as mp
 import numpy as np
 import os
-import mediapipe as mp
-import time
 import RPi.GPIO as GPIO
+import time
+
 import constants
-from collections import deque
 
 
 class CV():

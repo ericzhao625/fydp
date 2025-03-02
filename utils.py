@@ -1,6 +1,7 @@
+import cv2
 import os
 import psutil
-import cv2
+
 
 def monitor_memory():
     """
