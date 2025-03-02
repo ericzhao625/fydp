@@ -9,7 +9,16 @@ from collections import deque
 
 
 class CV():
+    """
+    A class for real-time pose estimation and distance estimation using OpenCV and Mediapipe.
+
+    This class handles video capture, pose detection, joint extraction, distance estimation, 
+    and movement direction prediction.
+    """
     def __init__(self):
+        """
+        Initializes the CV class by setting up Mediapipe Pose model and OpenCV camera capture.
+        """
         # Initialize Mediapipe
         try:
             self.mp_pose = mp.solutions.pose
@@ -33,6 +42,12 @@ class CV():
         self.distance_buffer = deque(maxlen=constants.CV_BUFFER_SIZE)
 
     def read_frame(self):
+        """
+        Captures a frame from the camera.
+
+        Returns:
+            frame (np.ndarray or None): Captured frame, or None if the capture fails.
+        """
         if self.cap is None:
             print("Camera not initialized.")
             return None
@@ -46,6 +61,17 @@ class CV():
 
 
     def process_frame(self, frame):
+        """
+        Processes a frame to detect human pose landmarks.
+
+        Args:
+            frame (np.ndarray): Input image frame in BGR format.
+
+        Returns:
+            Tuple[np.ndarray, mediapipe.framework.formats.landmark_pb2.NormalizedLandmarkList or None]:
+            - frame_rgb: Converted RGB image.
+            - pose_results: Pose landmarks detected by Mediapipe, or None if detection fails.
+        """
         if self.pose is None:
             print("Pose model not initialized.")
             return None
@@ -63,7 +89,16 @@ class CV():
             return None, None
 
     def extract_joints(self, pose_results):
+        """
+        Extracts key joints from the detected pose landmarks.
 
+        Args:
+            pose_results (mediapipe.framework.formats.landmark_pb2.NormalizedLandmarkList): 
+            The result from Mediapipe pose detection.
+
+        Returns:
+            dict or None: A dictionary containing extracted joint positions or None if no landmarks are detected.
+        """
         if pose_results.pose_landmarks:
 
             joints = {
@@ -90,11 +125,14 @@ class CV():
 
     def calculate_length(self, joint_1, joint_2):
         """
-        Calculate the distance between 2 joints
+        Computes the Euclidean distance between two joints.
 
-        :param joint_1: joint 1
-        :param joint_2: joint 2
-        :return: distance as a normalized value based on the camera feed
+        Args:
+            joint_1 (mediapipe.framework.formats.landmark_pb2.NormalizedLandmark): First joint.
+            joint_2 (mediapipe.framework.formats.landmark_pb2.NormalizedLandmark): Second joint.
+
+        Returns:
+            float: Distance between the two joints.
         """
         joint_1 = np.array([joint_1.x, joint_1.y, joint_1.z])
         joint_2 = np.array([joint_2.x, joint_2.y, joint_2.z])
@@ -106,7 +144,19 @@ class CV():
         return length
 
     def estimate_distance(self, frame, joints):
+        """
+        Estimates the distance of the player from the camera based on arm length.
 
+        Args:
+            frame (np.ndarray): Captured frame.
+            joints (dict): Dictionary containing detected joint positions.
+
+        Returns:
+            float or None: Estimated distance or None if joints are missing.
+        
+        Raises:
+            TypeError: If joints is None (joints are missing)
+        """
         try:
             length = self.calculate_length(joints['right arm'][0], joints['right arm'][1])
             distance_to_object = (4 * 280 * 720) / (length * 480 * 2.02) / 1000            
@@ -118,6 +168,19 @@ class CV():
         return None
 
     def smooth_distance(self, frame, joints):
+        """
+        Smooths the estimated distance using a rolling average filter.
+
+        Args:
+            frame (np.ndarray): Captured frame.
+            joints (dict): Dictionary containing detected joint positions.
+
+        Returns:
+            float or None: Smoothed distance value.
+
+        Raises:
+            ZeroDivisionError: If distance buffer is empty
+        """
         distance = self.estimate_distance(frame, joints)
 
         if distance is not None:
@@ -131,6 +194,21 @@ class CV():
         return None
 
     def pose_estimation(self, frame, joints):
+        """
+        Determines the player's position and whether they are ready to throw.
+
+        Args:
+            frame (np.ndarray): Captured frame.
+            joints (dict): Dictionary containing detected joint positions.
+
+        Returns:
+            str or None: One of the following movement statuses:
+                - 'centered and throw identified'
+                - 'centered'
+                - 'move left'
+                - 'move right'
+                - None (if pose landmarks are missing)
+        """
         if joints is None:# or 'body' not in joints or 'nose' not in joints:
             return None
 
@@ -141,25 +219,21 @@ class CV():
             if constants.CENTER - constants.POSE_TOLERANCE < body_position < constants.CENTER + constants.POSE_TOLERANCE:
                 if any(element.y < joints['nose'].y for element in joints['right arm']) or \
                    any(element.y < joints['nose'].y for element in joints['left arm']):
-
-                    # cv2.putText(frame, 'Pose Estimation: centered and throw identified', (0, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-
                     return 'centered and throw identified'
                 else:
-                    # cv2.putText(frame, 'Pose Estimation: centered', (0, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-
                     return 'centered'
             else:
                 direction = 'move left' if body_position < constants.CENTER else 'move right'
-                # cv2.putText(frame, f'Pose Estimation: {direction}', (0, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
                 return direction
         else:
-            # cv2.putText(frame, f'Pose Estimation: torso not found', (0, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-
             return None
 
     def cap_release(self):
-        self.cap.release()
+        """
+        Releases the camera resource.
+        """
+        if self.cap is not None:
+            self.cap.release()
 
 
 if __name__ == "__main__":
