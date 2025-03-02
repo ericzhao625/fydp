@@ -21,9 +21,10 @@ class IMU:
 
     def __init__(self, buffer_size=constants.IMU_BUFFER_SIZE): 
         """
-        Initializes the IMU sensor and buffers for smoothing.
+        Initializes the buffers for smoothing and IMU sensor for readings.
 
-        :param buffer_size: the maximum number of past readings to store for smoothing.
+        Args:
+            buffer_size (int): the maximum number of past readings to store for smoothing.
         """
         self.yaw_buffer = deque(maxlen=buffer_size)
         self.pitch_buffer = deque(maxlen=buffer_size)
