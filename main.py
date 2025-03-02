@@ -5,20 +5,17 @@ import RPi.GPIO as GPIO
 import cv2
 import mediapipe as mp
 
-from imu import initialize_imu, smooth_readings
+from imu import IMU
 from throwing import throwing_speed
 from cv import pose_detection
 
 import constants
 
-# IMU
-refresh_rate = 0.5
-moving_average_window = 10
-yaw_buffer = deque(maxlen=moving_average_window)
-pitch_buffer = deque(maxlen=moving_average_window)
-roll_buffer = deque(maxlen=moving_average_window)
 
 if __name__ == '__main__':
+
+    # Initialize IMU
+    imu = IMU()
 
     pinLED = 17
     GPIO.setmode(GPIO.BCM)
@@ -46,9 +43,10 @@ if __name__ == '__main__':
             break
 
         distance = pose_detection(mp_pose, pose, frame)
-
         print(distance)
-        
+
+        yaw, pitch, roll = imu.smooth_readings()
+
         # Show the video feed with the landmarks
         cv2.imshow("Pose Detection", frame)
 
