@@ -39,10 +39,8 @@ class Throw:
     def update_motor_speed(self, distance):
         pwm_value = self.distance_to_pwm(distance)
         self.pwm_pin.ChangeDutyCycle(pwm_value)
-        try:
-            print(f"Distance: {distance:.2f}m, PWM: {pwm_value:.2f}%")
-        except TypeError as e:
-            pass
+        if distance and pwm_value:
+            print(f"Distance: {distance:.2f}m, PWM: {distance:.2f}%")
 
         return pwm_value
 
