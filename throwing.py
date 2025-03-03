@@ -90,7 +90,7 @@ class Throw:
 
         return pwm_value
 
-    def push_frisbee(self, pose_estimation):
+    def push_frisbee(self, distance, pose_estimation):
         """
         Activates the solenoid to push the frisbee if the correct pose is detected.
 
@@ -98,7 +98,7 @@ class Throw:
             pose_estimation (str): The detected pose state from CV.
         """
         current_time = time.time()
-        if pose_estimation == 'centered and throw identified':
+        if pose_estimation == 'centered and throw identified' and distance >= self.min_distance:
             if current_time - self.last_activation_time >= self.cool_down:
                 print("Solenoid Activated")
                 GPIO.output(self.solenoid_pin, GPIO.HIGH)
@@ -109,6 +109,8 @@ class Throw:
 
             else:
                 print("Cooldown active, solenoid not triggered.")
+        elif pose_estimation == 'centered and throw identified' and distance < self.min_distance:
+            print('Too close')
 
     def stop_motor(self):
         """
