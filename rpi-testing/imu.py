@@ -1,6 +1,3 @@
-# SPDX-FileCopyrightText: 2020 Bryan Siepert, written for Adafruit Industries
-#
-# SPDX-License-Identifier: Unlicense
 import time
 import board
 import busio
@@ -11,46 +8,83 @@ from adafruit_bno08x import (
     BNO_REPORT_ROTATION_VECTOR,
 )
 from adafruit_bno08x.i2c import BNO08X_I2C
+from scipy.spatial.transform import Rotation as R
 
-i2c = busio.I2C(board.SCL, board.SDA, frequency=400000)
-bno = BNO08X_I2C(i2c)
 
-bno.enable_feature(BNO_REPORT_ACCELEROMETER)
-bno.enable_feature(BNO_REPORT_GYROSCOPE)
-bno.enable_feature(BNO_REPORT_MAGNETOMETER)
-bno.enable_feature(BNO_REPORT_ROTATION_VECTOR)
+def initialize_imu():
+    """
+    Initialize IMU to get readings.
 
-while True:
-    # time.sleep(1)
-    # print("Acceleration:")
-    # accel_x, accel_y, accel_z = bno.acceleration  # pylint:disable=no-member
-    # print("X: %0.6f  Y: %0.6f Z: %0.6f  m/s^2" % (accel_x, accel_y, accel_z))
-    # print("")
+    :return: IMU initialization
+    """
+    try:
+        # Initialize I2C
+        i2c = busio.I2C(board.SCL, board.SDA)
+        bno = BNO08X_I2C(i2c)
 
-    print("Gyro:")
-    gyro_x, gyro_y, gyro_z = bno.gyro  # pylint:disable=no-member
-    print("X: %0.6f  Y: %0.6f Z: %0.6f rads/s" % (gyro_x, gyro_y, gyro_z))
-    print("")
+        # Enable Quaternion readings for sensor
+        bno.enable_feature(BNO_REPORT_ROTATION_VECTOR)
 
-    # print("Magnetometer:")
-    # mag_x, mag_y, mag_z = bno.magnetic  # pylint:disable=no-member
-    # print("X: %0.6f  Y: %0.6f Z: %0.6f uT" % (mag_x, mag_y, mag_z))
-    # print("")
+        return bno
 
-    # print("Rotation Vector Quaternion:")
-    # quat_i, quat_j, quat_k, quat_real = bno.quaternion  # pylint:disable=no-member
-    # print(
-    #     "I: %0.6f  J: %0.6f K: %0.6f  Real: %0.6f" % (quat_i, quat_j, quat_k, quat_real)
-    # )
-    # print("")
+    except Exception as e:
+        print(f'IMU initialization failed: {e}')
+    return None
 
-# import board
-# import adafruit_bno08x
+def read_quaternion(bno):
+    """
+    Get Quaternion readings from IMU.
 
-# i2c = board.I2C()
-# bno = adafruit_bno08x.BNO08X(i2c)
+    :param bno: Initialized sensor
+    :return: Quaternion readings
+    """
 
-# bno.enable_feature(adafruit_bno08x.SENSOR_REPORT_GYROSCOPE)
+    try:
+        quat_i, quat_j, quat_k, quat_real = bno.quaternion
 
-# while True:
-#     print("Gyro:", bno.gyro)
+        return quat_i, quat_j, quat_k, quat_real
+    
+    except KeyError as e:
+        print(f'KeyError: IMU returned unexpected data format: {e}')
+    except OSError as e:
+        print(f'OSError: Possible I2C disconnection: {e}')
+    except Exception as e:
+        print(f'Unexpected error reading gyro: {e}')
+
+    return None
+
+
+def quaternion_to_euler(w, x, y, z):
+    """
+    Convert Quaternion readings to Euler angles.
+
+    :param w: scalar (real) part
+    :param x: vector (imaginary) part
+    :param y: vector (imaginary) part
+    :param z: vector (imaginary) part
+    :return: yaw, pitch, roll
+    """
+    
+    quaternion_readings = R.from_quat([x, y, z, w])
+    euler_angles = quaternion_readings.as_euler('zyx', degrees=True)
+
+    return euler_angles
+
+
+if __name__ == '__main__':
+
+    bno = initialize_imu()
+
+    # Output readings and angles
+    while True:
+        print("Rotation Vector Quaternion:")
+        quat_i, quat_j, quat_k, quat_real = read_quaternion(bno)
+        print(f'I: {quat_i:0.6f} J: {quat_j:0.6f} K: {quat_k:0.6f} Real: {quat_real:0.6f}')
+
+        if all((quat_i, quat_j, quat_k, quat_real)):
+            yaw, pitch, roll = quaternion_to_euler(quat_i, quat_j, quat_k, quat_real)
+            print(f'Yaw: {yaw:0.6f} Pitch: {pitch:0.6f} Roll: {roll:0.6f}')
+
+            print("")
+
+        time.sleep(0.1)
