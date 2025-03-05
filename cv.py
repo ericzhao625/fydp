@@ -181,10 +181,10 @@ class CV():
                 self.calculate_length(joints['left leg'][1], joints['left leg'][2]) +
                 self.calculate_length(joints['right leg'][1], joints['right leg'][2])
             )/2
-            height = average_torso_length + average_femur_length + average_ibia_length
+            height = average_torso_length + average_femur_length + average_tibia_length
             print(f'Height: {height}')
 
-            distance_to_object = (constants.CAMERA_FOCAL_LENGTH * constants.USER_HEIGHT * constants.HEIGHT_TO_SHOULDERS * constants.CAMERA_PIXEL_HEIGHT) / ((length * constants.CAMERA_PIXEL_HEIGHT) * constants.CAMERA_SENSOR_HEIGHT) / 1000            
+            distance_to_object = (constants.CAMERA_FOCAL_LENGTH * constants.USER_HEIGHT * constants.HEIGHT_TO_SHOULDERS * constants.CAMERA_PIXEL_HEIGHT) / ((height * constants.CAMERA_PIXEL_HEIGHT) * constants.CAMERA_SENSOR_HEIGHT) / 1000            
 
             return distance_to_object
 
@@ -216,6 +216,37 @@ class CV():
 
         except ZeroDivisionError as e:
             print('No distance values recorded yet.')
+        return None
+
+    def estimate_angle(self, frame, joints, distance):
+        """
+        Estimates the angle of the player from the camera based on lateral displacement.
+
+        Args:
+            frame (np.ndarray): Captured frame.
+            joints (dict): Dictionary containing detected joint positions.
+            distance (float): Estimated distance.
+        
+        Returns:
+            float or None: Estimated angle from center in degrees
+        """
+        try:
+            if all(element.visibility > 0.1 for element in joints['body']):
+                body_position = sum(element.x for element in joints['body']) / len(joints['body'])
+                
+                percentage_difference = (body_position - constants.CENTER) * 2
+
+                angle_degrees = percentage_difference * 22.5
+                angle_radians = np.radians(angle_degrees)
+
+                lateral_distance = distance * np.tan(angle_radians)
+
+                print(f'Angle: {angle_degrees} degrees, lateral distance: {lateral_distance}m')
+
+                return angle_degrees
+
+        except TypeError as e:
+            print(f'TypeError: Joints Not Found {e}')
         return None
 
     def pose_estimation(self, frame, joints):
