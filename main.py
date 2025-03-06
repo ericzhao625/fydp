@@ -51,7 +51,7 @@ if __name__ == '__main__':
             angle = cv.estimate_angle(frame, joints, distance)
 
             # Track player
-            aim.track_player(pose_estimation)
+            aim.track_player(angle)
 
             # Release frisbee
             throw.push_frisbee(distance, pose_estimation)
