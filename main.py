@@ -13,7 +13,7 @@ if __name__ == '__main__':
     display = True
 
     # Initialize IMU
-    imu = IMU()
+    # imu = IMU()
 
     # Initialize CV
     cv = CV()
@@ -27,7 +27,7 @@ if __name__ == '__main__':
     try:
         while True:
             # Get IMU readings
-            yaw, pitch, roll = imu.smooth_readings()
+            # yaw, pitch, roll = imu.smooth_readings()
 
             # Capture frame
             frame = cv.read_frame()
@@ -47,11 +47,14 @@ if __name__ == '__main__':
             pose_estimation = cv.pose_estimation(frame, joints)
             # print(f'Pose Estimation: {pose_estimation}')
 
+            # Get angle from center
+            angle = cv.estimate_angle(frame, joints, distance)
+
             # Track player
             aim.track_player(pose_estimation)
 
             # Release frisbee
-            throw.push_frisbee(pose_estimation)
+            throw.push_frisbee(distance, pose_estimation)
 
             if display:
                 # Display metrics
@@ -68,7 +71,7 @@ if __name__ == '__main__':
 
     finally:
         # Cleanup resources
-        imu.cleanup()
+        # imu.cleanup()
         throw.stop_motor()
         aim.stop_h_bridge()
         cv.cap_release()
