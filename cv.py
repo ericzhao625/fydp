@@ -42,6 +42,8 @@ class CV():
 
         self.distance_buffer = deque(maxlen=constants.CV_BUFFER_SIZE)
 
+        self.pose_tolerance = constants.AIMING_DEADBAND
+
     def read_frame(self):
         """
         Captures a frame from the camera.
@@ -249,7 +251,7 @@ class CV():
             print(f'TypeError: Joints Not Found {e}')
         return None
 
-    def pose_estimation(self, frame, joints):
+    def pose_estimation(self, frame, joints, angle):
         """
         Determines the player's position and whether they are ready to throw.
 
@@ -265,21 +267,20 @@ class CV():
                 - 'move right'
                 - None (if pose landmarks are missing)
         """
-        if joints is None:# or 'body' not in joints or 'nose' not in joints:
+        if angle is None or joints is None:
             return None
 
         # Check for centering
         if all(element.visibility > 0.1 for element in joints['body']):
             body_position = sum(element.x for element in joints['body']) / len(joints['body'])
-            
-            if constants.CENTER - constants.POSE_TOLERANCE < body_position < constants.CENTER + constants.POSE_TOLERANCE:
+            if abs(angle) < self.pose_tolerance:
                 if any(element.y < joints['nose'].y for element in joints['right arm']) or \
                    any(element.y < joints['nose'].y for element in joints['left arm']):
                     return 'centered and throw identified'
                 else:
                     return 'centered'
             else:
-                direction = 'move left' if body_position < constants.CENTER else 'move right'
+                direction = 'move left' if angle < 0 else 'move right'
                 return direction
         else:
             return None
