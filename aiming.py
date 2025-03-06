@@ -19,7 +19,7 @@ class Aim(HBridge):
         in2=constants.IN8,
         enable=constants.ENABLE_D,
         pwm_freq=constants.AIMING_MOTOR_FREQ,
-        pwm_dc=constants.AIMING_MOTOR_DC_INIT
+        pwm_dc=constants.AIMING_MOTOR_DC
     ):
         """
         Initializes the Aim control system by setting up the H-Bridge motor.
@@ -58,3 +58,19 @@ class Aim(HBridge):
                 self.forward(pwm)
             else:
                 self.backward(pwm)
+
+    def turn(self, direction):
+        """
+        Manual operation of aiming based on App input.
+
+        Args:
+            direction (string): command from app.
+        """
+        if direction == 'left':
+            self.forward(self.pwm_dc)
+        
+        elif direction == 'right':
+            self.backward(self.pwm_dc)
+        
+        else:
+            self.stop()
