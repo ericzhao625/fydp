@@ -42,7 +42,7 @@ class HBridge:
         self.pwm = GPIO.PWM(self.enable, self.pwm_freq)
         self.pwm.start(self.pwm_dc)
 
-    def forward(self, pwm):
+    def forward(self, pwm=self.pwm_dc):
         """
         Drives the motor forward by setting IN1 high and IN2 low.
 
@@ -53,7 +53,7 @@ class HBridge:
         GPIO.output(self.pin2, GPIO.LOW)
         GPIO.ChangeDutyCycle(pwm)
 
-    def backward(self, pwm):
+    def backward(self, pwm=self.pwm_dc):
         """
         Drives the motor backward by setting IN1 low and IN2 high.
         
