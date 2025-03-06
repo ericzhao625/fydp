@@ -1,5 +1,6 @@
 import constants
 from h_bridge import HBridge
+from pid import PIDController
 
 
 class Aim(HBridge):
@@ -31,21 +32,29 @@ class Aim(HBridge):
             pwm_dc (int): Initial duty cycle (0-100%) (default: constants.AIMING_MOTOR_DC).
         """
         super().__init__(in1, in2, enable, pwm_freq, pwm_dc)
+        self.deadband = constants.AIMING_DEADBAND
+        self.pid_controller = PIDController()
+
     
-    def track_player(self, pose_estimation):
+    def track_player(self, angle):
         """
         Adjusts the aiming direction based on the player's movement.
 
         Args:
-            pose_estimation (str): The detected pose direction.
-                Expected values:
-                - "move left" -> Motor moves forward
-                - "move right" -> Motor moves backward
-                - Any other value -> Motor stops
+            angle (float): Angle deviation from the target.
         """
-        if pose_estimation == 'move left':
-            self.forward()
-        elif pose_estimation == 'move right':
-            self.backward()
-        else:
+        # Check angle is valid
+        if angle is None:
+            return
+
+        # Ignore small angle deviations
+        if abs(angle) < self.deadband:
             self.stop()
+        
+        # Compute PWM
+        else:
+            pwm = self.pid_controller.compute(angle)
+            if angle > 0:
+                self.forward(pwm)
+            else:
+                self.backward(pwm)
