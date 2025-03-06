@@ -43,15 +43,15 @@ if __name__ == '__main__':
             # Update throwing motor speed
             pwm_value = throw.update_motor_speed(distance)
 
-            # Get player pose
-            pose_estimation = cv.pose_estimation(frame, joints)
-            # print(f'Pose Estimation: {pose_estimation}')
-
             # Get angle from center
             angle = cv.estimate_angle(frame, joints, distance)
 
             # Track player
             aim.track_player(angle)
+
+            # Get player pose
+            pose_estimation = cv.pose_estimation(frame, joints, angle)
+            # print(f'Pose Estimation: {pose_estimation}')
 
             # Release frisbee
             throw.push_frisbee(distance, pose_estimation)
