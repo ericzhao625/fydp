@@ -19,7 +19,7 @@ class Aim(HBridge):
         in2=constants.IN8,
         enable=constants.ENABLE_D,
         pwm_freq=constants.AIMING_MOTOR_FREQ,
-        pwm_dc=constants.AIMING_MOTOR_DC
+        pwm_dc=constants.AIMING_MOTOR_DC_INIT
     ):
         """
         Initializes the Aim control system by setting up the H-Bridge motor.
