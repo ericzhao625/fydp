@@ -17,6 +17,9 @@ class Bluetooth:
         value (int): Value to count to.
     """
     def __init__(self):
+        """
+        Initializes Bluetooth communication class.
+        """
         self.received_data = None
         self.running = True
         self.connected = False
