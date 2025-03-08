@@ -31,6 +31,7 @@ class PIDController:
         self.Kp = constants.KP
         self.Ki = constants.KI
         self.Kd = constants.KD
+        self.integral = 0
         self.min_pwm = constants.PID_MAX_PWM
         self.max_pwm = constants.PID_MIN_PWM
 
@@ -61,8 +62,8 @@ class PIDController:
             P = self.Kp * error
 
             # Integral term (accumulates error over time)
-            integral += error * dt
-            I = self.Ki * integral
+            self.integral += error * dt
+            I = self.Ki * self.integral
 
             # Derivative term (rate of change of error)
             derivative = (error - self.prev_error) / dt

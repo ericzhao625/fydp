@@ -1,8 +1,15 @@
 import threading
 from bluedot.btcomm import BluetoothServer
+import cv2
+import RPi.GPIO as GPIO
 from signal import pause
 import time
 
+from aiming import Aim
+from cv import CV
+from imu import IMU
+from throwing import Throw
+from utils import display_metrics
 
 class Bluetooth:
     """
@@ -20,6 +27,21 @@ class Bluetooth:
         """
         Initializes Bluetooth communication class.
         """
+        # OpenCV window
+        self.display = True
+
+        # Initialize IMU
+        # imu = IMU()
+
+        # Initialize CV
+        self.cv = CV()
+
+        # Initialize throwing motor and solenoid
+        self.throw = Throw()
+
+        # Initialize aiming
+        self.aim = Aim()
+
         self.received_data = None
         self.running = True
         self.connected = False
@@ -137,7 +159,41 @@ class Bluetooth:
         Operate based on command.
         """
         if self.operation == 'autonomous':
-            self.autonomous()
+            # self.autonomous()
+
+            # Capture frame
+            frame = self.cv.read_frame()
+            # Convert frame to RGB and get mediapipe output
+            frame_rgb, pose_results = self.cv.process_frame(frame)
+            # Get the joints of interest
+            joints = self.cv.extract_joints(pose_results)
+
+            # Get player distance
+            distance = self.cv.smooth_distance(frame, joints)
+            # print(f'Distance: {distance}m')
+
+            # Update throwing motor speed
+            pwm_value = self.throw.update_motor_speed(distance)
+
+            # Get angle from center
+            angle = self.cv.estimate_angle(frame, joints, distance)
+
+            # Track player
+            self.aim.track_player(angle)
+
+            # Get player pose
+            pose_estimation = self.cv.pose_estimation(frame, joints, angle)
+            # print(f'Pose Estimation: {pose_estimation}')
+
+            # Release frisbee
+            self.throw.push_frisbee(distance, pose_estimation)
+
+            if self.display:
+                # Display metrics
+                display_metrics(frame, distance, pwm_value, pose_estimation)
+
+                # Show the video feed with the landmarks
+                cv2.imshow("Frisbeast Vision", frame)
         
         elif self.operation == 'manual':
             self.manual()
@@ -149,26 +205,40 @@ class Bluetooth:
         """
         Runs a background loop while Bluetooth listens for data.
         """
-        while self.running:
+        try:
+            while True:
 
-            # Check Bluetooth device is connected
-            while self.connected:
+                # Check Bluetooth device is connected
+                while self.connected:
 
-                # Check if new data is received
-                if self.received_data:
-                
-                    # Process data
-                    self.process_data()
+                    # Check if new data is received
+                    if self.received_data:
                     
-                    # Reset after processing
-                    self.received_data = None
-                    self.processed_data = None
+                        # Process data
+                        self.process_data()
+                        
+                        # Reset after processing
+                        self.received_data = None
+                        self.processed_data = None
 
-                # Operate based on command
-                self.operate()
+                    # Operate based on command
+                    self.operate()
 
-                # Prevent excessive CPU usage
-                time.sleep(0.1)
+                    # Prevent excessive CPU usage
+                    time.sleep(0.1)
+
+        except KeyboardInterrupt:
+            print("Keyboard Interrupt detected! Cleaning up resources.")
+
+        finally:
+            # Cleanup resources
+            # imu.cleanup()
+            self.throw.stop_motor()
+            self.aim.stop_h_bridge()
+            self.cv.cap_release()
+            cv2.destroyAllWindows()
+            GPIO.cleanup()
+            print("Cleanup complete. Exiting safely.")
 
 
 if __name__ == '__main__':

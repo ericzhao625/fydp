@@ -54,10 +54,11 @@ class Aim(HBridge):
         # Compute PWM
         else:
             pwm = self.pid_controller.compute(angle)
-            if angle > 0:
-                self.forward(pwm)
-            else:
-                self.backward(pwm)
+            if pwm is not None:
+                if angle > 0:
+                    self.forward(pwm)
+                else:
+                    self.backward(pwm)
 
     def turn(self, direction):
         """
