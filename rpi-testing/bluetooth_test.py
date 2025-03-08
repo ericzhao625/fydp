@@ -34,7 +34,7 @@ class Bluetooth:
             when_client_disconnects=self.disconnect_handler
         )
 
-        self.task_thread = threading.Thread(target=self.background_task, daemon=True)
+        self.task_thread = threading.Thread(target=self.main, daemon=True)
         self.task_thread.start()
 
     def connect_handler(self):
@@ -82,7 +82,70 @@ class Bluetooth:
             self.value = 0
             self.count = 0
 
-    def background_task(self):
+    def process_data(self):
+        """
+        Process data and take command.
+        """
+        print(f"Processing: {self.received_data}")
+
+        # Split data into list elements
+        self.processed_data = self.received_data.split(';')
+                    
+        try:
+            # Autnomous operation
+            # Check if autonomous mode is turned on
+            if self.processed_data[0] == 'MODE:AUTO' and self.processed_data[1] == 'State:1':
+                self.operation = 'autonomous'
+                self.count = 0
+            # Check if autonomous mode is turned off
+            elif self.processed_data[0] == 'MODE:AUTO' and self.processed_data[1] == 'State:0':
+                self.operation = 'off'
+                self.count = 0
+            
+            # Manual operation
+            # Check if manual mode is selected
+            elif self.processed_data[0] == 'MODE:MANUAL':
+                self.operation = 'manual'
+                self.count = 0
+                print('manual running')
+
+            # Set throwing speed
+            elif self.processed_data[0].startswith('Speed'):
+                self.value = int(self.processed_data[0][6:])
+
+            # Adjust lateral aiming
+            elif self.processed_data[0] == 'Direction:Left':
+                print('We going left')
+            elif self.processed_data[0] == 'Direction:Right':
+                print('We going right')
+
+            # Adjust throwing tilt/height                        
+            elif self.processed_data[0] == 'Direction:Up':
+                print('We going right')
+            elif self.processed_data[0] == 'Direction:Down':
+                print('We going right')
+
+            # Turn off machine operation
+            elif self.processed_data[0] == 'MODE:OFF':
+                self.operation = None
+
+        except Exception as e:
+            pass
+
+    def operate(self):
+        """
+        Operate based on command.
+        """
+        if self.operation == 'autonomous':
+            self.autonomous()
+        
+        elif self.operation == 'manual':
+            self.manual()
+        
+        elif self.operation is None:
+            pass
+
+    def main(self):
         """
         Runs a background loop while Bluetooth listens for data.
         """
@@ -93,61 +156,16 @@ class Bluetooth:
 
                 # Check if new data is received
                 if self.received_data:
-                    print(f"Processing: {self.received_data}")
-                    
-                    # Split data into list elements
-                    self.processed_data = self.received_data.split(';')
-                    
-                    try:
-                        # Autnomous operation
-                        # Check if autonomous mode is turned on
-                        if self.processed_data[0] == 'MODE:AUTO' and self.processed_data[1] == 'State:1':
-                            self.operation = 'autonomous'
-                            self.count = 0
-                        # Check if autonomous mode is turned off
-                        elif self.processed_data[0] == 'MODE:AUTO' and self.processed_data[1] == 'State:0':
-                            self.operation = 'off'
-                            self.count = 0
-                        
-                        # Manual operation
-                        # Check if manual mode is selected
-                        elif self.processed_data[0] == 'MODE:MANUAL':
-                            self.operation = 'manual'
-                            self.count = 0
-                            print('manual running')
-
-                        # Set throwing speed
-                        elif self.processed_data[0].startswith('Speed'):
-                            self.value = int(self.processed_data[0][6:])
-
-                        # Adjust lateral aiming
-                        elif self.processed_data[0] == 'Direction:Left':
-                            print('We going left')
-                        elif self.processed_data[0] == 'Direction:Right':
-                            print('We going right')
-
-                        # Adjust throwing tilt/height                        
-                        elif self.processed_data[0] == 'Direction:Up':
-                            print('We going right')
-                        elif self.processed_data[0] == 'Direction:Down':
-                            print('We going right')
-
-                        # Turn off machine operation
-                        elif self.processed_data[0] == 'MODE:OFF':
-                            self.operation = 'off'
-
-                    except Exception as e:
-                        pass
+                
+                    # Process data
+                    self.process_data()
                     
                     # Reset after processing
                     self.received_data = None
                     self.processed_data = None
 
-                if self.operation == 'autonomous':
-                    self.autonomous()
-                
-                elif self.operation == 'manual':
-                    self.manual()
+                # Operate based on command
+                self.operate()
 
                 # Prevent excessive CPU usage
                 time.sleep(0.1)
