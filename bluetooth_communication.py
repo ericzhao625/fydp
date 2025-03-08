@@ -47,7 +47,6 @@ class Bluetooth:
         self.connected = False
         self.operation = None
         self.command = None
-        self.count = 0
         self.speed = 0
 
         self.server = BluetoothServer(
@@ -148,17 +147,14 @@ class Bluetooth:
             # Check if autonomous mode is turned on
             if self.processed_data[0] == 'MODE:AUTO' and self.processed_data[1] == 'State:1':
                 self.operation = 'autonomous'
-                self.count = 0
             # Check if autonomous mode is turned off
             elif self.processed_data[0] == 'MODE:AUTO' and self.processed_data[1] == 'State:0':
                 self.operation = 'off'
-                self.count = 0
             
             # Manual operation
             # Check if manual mode is selected
             elif self.processed_data[0] == 'MODE:MANUAL':
                 self.operation = 'manual'
-                self.count = 0
                 print('manual running')
 
             # Set throwing speed
