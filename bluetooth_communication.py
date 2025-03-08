@@ -64,14 +64,14 @@ class Bluetooth:
         """
         Runs when Bluetooth device connects to Raspberry Pi.
         """
-        print('Client connected...')
+        print('Device connected')
         self.connected = True
 
     def disconnect_handler(self):
         """
         Runs when Bluetooth device disconnects from Raspberry Pi.
         """
-        print('Client disconnected...')
+        print('Device disconnected')
         self.connected = False
 
     def data_received_handler(self, data):
