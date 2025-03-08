@@ -106,7 +106,7 @@ class Throw:
             pose_estimation (str): The detected pose state from CV.
         """
         current_time = time.time()
-        if pose_estimation == 'centered and throw identified' and distance >= self.min_distance:
+        if pose_estimation in ('centered and throw identified', 'Direction:Throw') and distance >= self.min_distance:
             if current_time - self.last_activation_time >= self.cool_down:
                 print("Solenoid Activated")
                 GPIO.output(self.solenoid_pin, GPIO.HIGH)

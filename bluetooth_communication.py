@@ -130,6 +130,7 @@ class Bluetooth:
         """
         self.throw.update_manual_motor_speed(self.speed)
         self.aim.turn(self.command)
+        self.throw.push_frisbee(self.throw.max_distance, self.command)
 
         self.command = None
 
@@ -164,21 +165,10 @@ class Bluetooth:
             elif self.processed_data[0].startswith('Speed'):
                 self.speed = int(self.processed_data[0][6:])
 
-            # Adjust lateral aiming
-            elif self.processed_data[0] == 'Direction:Left':
-                self.command = 'left'
-                print('We going left')
-            elif self.processed_data[0] == 'Direction:Right':
-                self.command = 'right'
-                print('We going right')
-
-            # Adjust throwing tilt/height                        
-            elif self.processed_data[0] == 'Direction:Up':
-                self.command = 'up'
-                print('We going right')
-            elif self.processed_data[0] == 'Direction:Down':
-                self.command = 'down'
-                print('We going right')
+            # Set commands
+            elif self.processed_data[0].startswith('Direction'):
+                self.command = self.processed_data[0]
+                print(self.command)
 
             # Turn off machine operation
             elif self.processed_data[0] == 'MODE:OFF':
