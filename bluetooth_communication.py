@@ -194,7 +194,8 @@ class Bluetooth:
 
                 # Show the video feed with the landmarks
                 cv2.imshow("Frisbeast Vision", frame)
-        
+                cv2.waitKey(1)
+
         elif self.operation == 'manual':
             self.manual()
         
