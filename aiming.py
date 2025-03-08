@@ -69,9 +69,13 @@ class Aim(HBridge):
         """
         if direction == 'Direction:Left':
             self.forward(self.pwm_dc)
+            time.sleep(0.5)
+            self.stop()    
         
         elif direction == 'Direction:Right':
             self.backward(self.pwm_dc)
+            time.sleep(0.5)
+            self.stop()
         
         else:
             self.stop()
