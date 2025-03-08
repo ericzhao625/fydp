@@ -190,44 +190,42 @@ class Bluetooth:
         elif self.operation is None:
             pass
 
+    def cleanup(self):
+        """
+        Clean up resources.
+        """
+        # imu.cleanup()
+        self.throw.stop_motor()
+        self.aim.stop_h_bridge()
+        self.cv.cap_release()
+        cv2.destroyAllWindows()
+        GPIO.cleanup()
+        print("Cleanup complete. Exiting safely.")
+
     def main(self):
         """
         Runs a background loop while Bluetooth listens for data.
         """
-        try:
-            while True:
+        while True:
 
-                # Check Bluetooth device is connected
-                while self.connected:
+            # Check Bluetooth device is connected
+            if self.connected:
 
-                    # Check if new data is received
-                    if self.received_data:
+                # Check if new data is received
+                if self.received_data:
+                
+                    # Process data
+                    self.process_data()
                     
-                        # Process data
-                        self.process_data()
-                        
-                        # Reset after processing
-                        self.received_data = None
-                        self.processed_data = None
+                    # Reset after processing
+                    self.received_data = None
+                    self.processed_data = None
 
-                    # Operate based on command
-                    self.operate()
+                # Operate based on command
+                self.operate()
 
-                    # Prevent excessive CPU usage
-                    time.sleep(0.1)
-
-        except KeyboardInterrupt:
-            print("Keyboard Interrupt detected! Cleaning up resources.")
-
-        finally:
-            # Cleanup resources
-            # imu.cleanup()
-            self.throw.stop_motor()
-            self.aim.stop_h_bridge()
-            self.cv.cap_release()
-            cv2.destroyAllWindows()
-            GPIO.cleanup()
-            print("Cleanup complete. Exiting safely.")
+                # Prevent excessive CPU usage
+                time.sleep(0.1)
 
 
 if __name__ == '__main__':

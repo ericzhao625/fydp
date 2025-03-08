@@ -12,4 +12,11 @@ from utils import display_metrics
 
 if __name__ == '__main__':
     bluetooth = Bluetooth()
-    pause()
+    try:
+        pause()
+    except KeyboardInterrupt:
+        print("Keyboard Interrupt detected! Cleaning up resources.")
+
+    finally:
+        bluetooth.cleanup()
+
