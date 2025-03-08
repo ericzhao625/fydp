@@ -44,6 +44,12 @@ class CV():
 
         self.pose_tolerance = constants.AIMING_DEADBAND
 
+        self.camera_focal_length = constants.CAMERA_FOCAL_LENGTH
+        self.user_height = 0
+        self.height_to_shoulders = constants.HEIGHT_TO_SHOULDERS
+        self.camera_pixel_height = constants.CAMERA_PIXEL_HEIGHT
+        self.camera_sensor_height = constants.CAMERA_SENSOR_HEIGHT
+
     def read_frame(self):
         """
         Captures a frame from the camera.
@@ -183,10 +189,10 @@ class CV():
                 self.calculate_length(joints['left leg'][1], joints['left leg'][2]) +
                 self.calculate_length(joints['right leg'][1], joints['right leg'][2])
             )/2
-            height = average_torso_length + average_femur_length + average_tibia_length
-            print(f'Height: {height}')
+            relative_height = average_torso_length + average_femur_length + average_tibia_length
+            print(f'Relative height: {relative_height}')
 
-            distance_to_object = (constants.CAMERA_FOCAL_LENGTH * constants.USER_HEIGHT * constants.HEIGHT_TO_SHOULDERS * constants.CAMERA_PIXEL_HEIGHT) / ((height * constants.CAMERA_PIXEL_HEIGHT) * constants.CAMERA_SENSOR_HEIGHT) / 1000            
+            distance_to_object = (self.camera_focal_length * self.user_height * self.height_to_shoulders * self.camera_pixel_height) / ((relative_height * self.camera_pixel_height) * self.camera_sensor_height) / 1000
 
             return distance_to_object
 
