@@ -67,10 +67,10 @@ class Aim(HBridge):
         Args:
             direction (string): command from app.
         """
-        if direction == 'left':
+        if direction == 'Direction:Left':
             self.forward(self.pwm_dc)
         
-        elif direction == 'right':
+        elif direction == 'Direction:Right':
             self.backward(self.pwm_dc)
         
         else:

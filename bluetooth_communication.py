@@ -46,6 +46,7 @@ class Bluetooth:
         self.running = True
         self.connected = False
         self.operation = None
+        self.command = None
         self.count = 0
         self.value = 0
 
@@ -125,15 +126,11 @@ class Bluetooth:
 
     def manual(self):
         """
-        Dummy function for manual operation.
+        Function for manual operation.
         """
-        if self.count < self.value:
-            self.count += 1
-            print(f"Manual mode running. Count: {self.count}")
-            time.sleep(1)
-        else:
-            self.value = 0
-            self.count = 0
+        self.aim.turn(self.command)
+
+        self.command = None
 
     def process_data(self):
         """
@@ -168,14 +165,18 @@ class Bluetooth:
 
             # Adjust lateral aiming
             elif self.processed_data[0] == 'Direction:Left':
+                self.command = 'left'
                 print('We going left')
             elif self.processed_data[0] == 'Direction:Right':
+                self.command = 'right'
                 print('We going right')
 
             # Adjust throwing tilt/height                        
             elif self.processed_data[0] == 'Direction:Up':
+                self.command = 'up'
                 print('We going right')
             elif self.processed_data[0] == 'Direction:Down':
+                self.command = 'down'
                 print('We going right')
 
             # Turn off machine operation
