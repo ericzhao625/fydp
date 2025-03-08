@@ -96,6 +96,7 @@ class Throw:
         """
         pwm_value = speed / 100 * self.max_pwm
         self.pwm.ChangeDutyCycle(pwm_value)
+        print(pwm_value)
 
     def push_frisbee(self, distance, pose_estimation):
         """
