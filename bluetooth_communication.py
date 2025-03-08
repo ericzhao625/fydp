@@ -86,11 +86,42 @@ class Bluetooth:
 
     def autonomous(self):
         """
-        Dummy function for autonomous operation.
+        Function for autonomous operation.
         """
-        self.count += 1
-        print(f"Autonomous mode running. Count: {self.count}")
-        time.sleep(1)
+        # Capture frame
+        frame = self.cv.read_frame()
+        # Convert frame to RGB and get mediapipe output
+        frame_rgb, pose_results = self.cv.process_frame(frame)
+        # Get the joints of interest
+        joints = self.cv.extract_joints(pose_results)
+
+        # Get player distance
+        distance = self.cv.smooth_distance(frame, joints)
+        # print(f'Distance: {distance}m')
+
+        # Update throwing motor speed
+        pwm_value = self.throw.update_motor_speed(distance)
+
+        # Get angle from center
+        angle = self.cv.estimate_angle(frame, joints, distance)
+
+        # Track player
+        self.aim.track_player(angle)
+
+        # Get player pose
+        pose_estimation = self.cv.pose_estimation(frame, joints, angle)
+        # print(f'Pose Estimation: {pose_estimation}')
+
+        # Release frisbee
+        self.throw.push_frisbee(distance, pose_estimation)
+
+        if self.display:
+            # Display metrics
+            display_metrics(frame, distance, pwm_value, pose_estimation)
+
+            # Show the video feed with the landmarks
+            cv2.imshow("Frisbeast Vision", frame)
+            cv2.waitKey(1)
 
     def manual(self):
         """
@@ -159,42 +190,7 @@ class Bluetooth:
         Operate based on command.
         """
         if self.operation == 'autonomous':
-            # self.autonomous()
-
-            # Capture frame
-            frame = self.cv.read_frame()
-            # Convert frame to RGB and get mediapipe output
-            frame_rgb, pose_results = self.cv.process_frame(frame)
-            # Get the joints of interest
-            joints = self.cv.extract_joints(pose_results)
-
-            # Get player distance
-            distance = self.cv.smooth_distance(frame, joints)
-            # print(f'Distance: {distance}m')
-
-            # Update throwing motor speed
-            pwm_value = self.throw.update_motor_speed(distance)
-
-            # Get angle from center
-            angle = self.cv.estimate_angle(frame, joints, distance)
-
-            # Track player
-            self.aim.track_player(angle)
-
-            # Get player pose
-            pose_estimation = self.cv.pose_estimation(frame, joints, angle)
-            # print(f'Pose Estimation: {pose_estimation}')
-
-            # Release frisbee
-            self.throw.push_frisbee(distance, pose_estimation)
-
-            if self.display:
-                # Display metrics
-                display_metrics(frame, distance, pwm_value, pose_estimation)
-
-                # Show the video feed with the landmarks
-                cv2.imshow("Frisbeast Vision", frame)
-                cv2.waitKey(1)
+            self.autonomous()
 
         elif self.operation == 'manual':
             self.manual()
