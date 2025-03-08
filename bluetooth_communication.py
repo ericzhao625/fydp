@@ -150,7 +150,7 @@ class Bluetooth:
                 self.operation = 'autonomous'
                 self.height = int(self.processed_data[2][7:])
                 self.cv.set_height(self.height)
-                
+
             # Check if autonomous mode is turned off
             elif self.processed_data[0] == 'MODE:AUTO' and self.processed_data[1] == 'State:0':
                 self.operation = 'off'
@@ -188,7 +188,8 @@ class Bluetooth:
             self.manual()
         
         elif self.operation is None:
-            pass
+            self.throw.update_manual_motor_speed(0)
+            self.aim.stop()
 
     def cleanup(self):
         """
