@@ -48,7 +48,7 @@ class Bluetooth:
         self.operation = None
         self.command = None
         self.count = 0
-        self.value = 0
+        self.speed = 0
 
         self.server = BluetoothServer(
             self.data_received_handler,
@@ -128,6 +128,7 @@ class Bluetooth:
         """
         Function for manual operation.
         """
+        self.throw.update_manual_motor_speed(self.speed)
         self.aim.turn(self.command)
 
         self.command = None
@@ -161,7 +162,7 @@ class Bluetooth:
 
             # Set throwing speed
             elif self.processed_data[0].startswith('Speed'):
-                self.value = int(self.processed_data[0][6:])
+                self.speed = int(self.processed_data[0][6:])
 
             # Adjust lateral aiming
             elif self.processed_data[0] == 'Direction:Left':

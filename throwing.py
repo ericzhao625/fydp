@@ -90,6 +90,13 @@ class Throw:
 
         return pwm_value
 
+    def update_manual_motor_speed(self, speed):
+        """
+        Update the motor speed based on the speed (0-100) provided by the Bluetooth device.
+        """
+        pwm_value = speed / 100 * self.max_pwm
+        self.pwm.ChangeDutyCycle(pwm_value)
+
     def push_frisbee(self, distance, pose_estimation):
         """
         Activates the solenoid to push the frisbee if the correct pose is detected.
