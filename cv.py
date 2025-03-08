@@ -162,6 +162,15 @@ class CV():
 
         return length
 
+    def set_height(self, height):
+        """
+        Set user height provided by Bluetooth app.
+
+        Args:
+            height (int): Height of user in cm.
+        """
+        self.user_height = height
+
     def estimate_distance(self, frame, joints):
         """
         Estimates the distance of the player from the camera based on arm length.
@@ -192,7 +201,7 @@ class CV():
             relative_height = average_torso_length + average_femur_length + average_tibia_length
             print(f'Relative height: {relative_height}')
 
-            distance_to_object = (self.camera_focal_length * self.user_height * self.height_to_shoulders * self.camera_pixel_height) / ((relative_height * self.camera_pixel_height) * self.camera_sensor_height) / 1000
+            distance_to_object = (self.camera_focal_length * (self.user_height * 10) * self.height_to_shoulders * self.camera_pixel_height) / ((relative_height * self.camera_pixel_height) * self.camera_sensor_height) / 1000
 
             return distance_to_object
 

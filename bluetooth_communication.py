@@ -149,6 +149,8 @@ class Bluetooth:
             if self.processed_data[0] == 'MODE:AUTO' and self.processed_data[1] == 'State:1' and self.processed_data[2].startswith('Height:'):
                 self.operation = 'autonomous'
                 self.height = int(self.processed_data[2][7:])
+                self.cv.set_height(self.height)
+                
             # Check if autonomous mode is turned off
             elif self.processed_data[0] == 'MODE:AUTO' and self.processed_data[1] == 'State:0':
                 self.operation = 'off'
