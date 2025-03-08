@@ -48,6 +48,7 @@ class Bluetooth:
         self.operation = None
         self.command = None
         self.speed = 0
+        self.height = 0
 
         self.server = BluetoothServer(
             self.data_received_handler,
@@ -145,8 +146,9 @@ class Bluetooth:
         try:
             # Autnomous operation
             # Check if autonomous mode is turned on
-            if self.processed_data[0] == 'MODE:AUTO' and self.processed_data[1] == 'State:1':
+            if self.processed_data[0] == 'MODE:AUTO' and self.processed_data[1] == 'State:1' and self.processed_data[2].startswith('Height:'):
                 self.operation = 'autonomous'
+                self.height = int(self.processed_data[2][7:])
             # Check if autonomous mode is turned off
             elif self.processed_data[0] == 'MODE:AUTO' and self.processed_data[1] == 'State:0':
                 self.operation = 'off'
