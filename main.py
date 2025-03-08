@@ -1,4 +1,5 @@
 from bluetooth_communication import Bluetooth
+from signal import pause
 
 
 if __name__ == '__main__':
