@@ -1,12 +1,14 @@
 from adafruit_bno08x import BNO_REPORT_ROTATION_VECTOR
-from adafruit_bno08x.i2c import BNO08X_I2C
+from adafruit_bno08x.uart import BNO08X_UART
 import board
 import busio
+import serial
 from collections import deque
 from scipy.spatial.transform import Rotation as R
-import time
 
 import constants
+import time
+import threading
 
 
 class IMU:
@@ -21,7 +23,7 @@ class IMU:
         bno (BNO08X_I2C): BNO085 sensor
     """
 
-    def __init__(self, i2c_lock, i2c=None, buffer_size=constants.IMU_BUFFER_SIZE): 
+    def __init__(self, uart=None, buffer_size=constants.IMU_BUFFER_SIZE): 
         """
         Initializes the buffers for smoothing and IMU sensor for readings.
 
@@ -32,10 +34,9 @@ class IMU:
         self.pitch_buffer = deque(maxlen=buffer_size)
         self.roll_buffer = deque(maxlen=buffer_size)
     
-        self.i2c_lock = i2c_lock
-        self.i2c, self.bno = self.initialize_imu(i2c)
+        self.uart, self.bno = self.initialize_imu(uart)
 
-    def initialize_imu(self, i2c):
+    def initialize_imu(self, uart):
         """
         Initializes the I2C and the BNO085 sensor to get readings.
 
@@ -50,21 +51,24 @@ class IMU:
         Raises:
             Exception: If the I2C bus or BNO085 sensor fails to initialize.
         """
-        for i in range(5):
-            try:
-                # Initialize I2C
-                if not i2c:
-                    i2c = busio.I2C(board.SCL, board.SDA)
-                bno = BNO08X_I2C(i2c)
+        try:
+            # Initialize I2C
+            print("starting initialization")
+            if not uart:
+                uart = serial.Serial("/dev/serial0", 115200)
+            print("uart initialized")
 
-                # Enable Quaternion readings for sensor
-                bno.enable_feature(BNO_REPORT_ROTATION_VECTOR)
+            bno = BNO08X_UART(uart)
+            print("bno initialized")
 
-                return i2c, bno
+            # Enable Quaternion readings for sensor
+            bno.enable_feature(BNO_REPORT_ROTATION_VECTOR)
 
-            except Exception as e:
-                print(f'IMU initialization failed: {e}, retrying...')
-                time.sleep(0.5 * (i + 1))
+            return uart, bno
+
+        except Exception as e:
+            print(f'IMU initialization failed: {e}')
+            return None, None
 
 
     def read_quaternion(self):
@@ -80,22 +84,20 @@ class IMU:
             OSError: If there's a possible I2C disconnection.
             Exception: For any other unexpected errors.
         """
-        for i in range(5):
+        # retry 3 times
+        for i in range(3):
             try:
-                self.i2c_lock.acquire()
                 quat_i, quat_j, quat_k, quat_real = self.bno.quaternion
-                self.i2c_lock.release()
                 return quat_i, quat_j, quat_k, quat_real
             
-            except KeyError as e:
-                print(f'KeyError: IMU returned unexpected data format: {e}')
-            except OSError as e:
-                print(f'OSError: Possible I2C disconnection: {e}')
+            # except KeyError as e:
+            #     print(f'KeyError: IMU returned unexpected data format: {e}')
+            # except OSError as e:
+            #     print(f'OSError: Possible I2C disconnection: {e}')
             except Exception as e:
                 print(f'Unexpected error reading gyro: {e}')
             
-            self.i2c_lock.release()
-            time.sleep(0.5 * (i + 1))
+            time.sleep(0.01 * (i + 1))
 
         return None, None, None, None
 
@@ -143,10 +145,8 @@ class IMU:
             return None, None, None
 
         # Convert Quaternion readings to Euler angles
-        yaw, pitch, roll = self.quaternion_to_euler(quat_i, quat_j, quat_k, quat_real)
-        # print(f'Yaw: {yaw:0.6f} Pitch: {pitch:0.6f} Roll: {roll:0.6f}')
 
-        return yaw, pitch, roll
+        return self.quaternion_to_euler(quat_i, quat_j, quat_k, quat_real)
 
 
     def smooth_readings(self):

@@ -8,6 +8,7 @@ from adafruit_bno08x import (
     BNO_REPORT_ROTATION_VECTOR,
 )
 from adafruit_bno08x.i2c import BNO08X_I2C
+from adafruit_bno08x.uart import BNO08X_UART
 from scipy.spatial.transform import Rotation as R
 
 
@@ -17,13 +18,17 @@ def initialize_imu():
 
     :return: IMU initialization
     """
+    print("initializing...")
     try:
         # Initialize I2C
         i2c = busio.I2C(board.SCL, board.SDA)
+        print("i2c initialized")
         bno = BNO08X_I2C(i2c)
+        print("bno initialized")
 
         # Enable Quaternion readings for sensor
         bno.enable_feature(BNO_REPORT_ROTATION_VECTOR)
+        print("enabled")
 
         return bno
 
@@ -78,13 +83,17 @@ if __name__ == '__main__':
     # Output readings and angles
     while True:
         print("Rotation Vector Quaternion:")
-        quat_i, quat_j, quat_k, quat_real = read_quaternion(bno)
-        print(f'I: {quat_i:0.6f} J: {quat_j:0.6f} K: {quat_k:0.6f} Real: {quat_real:0.6f}')
+        try:
+            quat_i, quat_j, quat_k, quat_real = read_quaternion(bno)
+            print(f'I: {quat_i:0.6f} J: {quat_j:0.6f} K: {quat_k:0.6f} Real: {quat_real:0.6f}')
 
-        if all((quat_i, quat_j, quat_k, quat_real)):
-            yaw, pitch, roll = quaternion_to_euler(quat_i, quat_j, quat_k, quat_real)
-            print(f'Yaw: {yaw:0.6f} Pitch: {pitch:0.6f} Roll: {roll:0.6f}')
+            if all((quat_i, quat_j, quat_k, quat_real)):
+                yaw, pitch, roll = quaternion_to_euler(quat_i, quat_j, quat_k, quat_real)
+                print(f'Yaw: {yaw:0.6f} Pitch: {pitch:0.6f} Roll: {roll:0.6f}')
 
-            print("")
+                print("")
+
+        except Exception as e:
+            print(f"exception occurred: {e}")
 
         time.sleep(0.1)

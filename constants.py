@@ -1,27 +1,27 @@
 # IMU
 IMU_BUFFER_SIZE = 10
 
-# Linear Actuator Left Front out3 out4
-IN3 = 25
-IN4 = 24
-ENABLE_B = 23
+# # Linear Actuator Left Front out3 out4
+# IN3 = 25
+# IN4 = 24
+# ENABLE_B = 23
 
-# Linear Actuator Left Back out1 out2
-IN1 = 15
-IN2 = 14
-ENABLE_A = 18
+# # Linear Actuator Left Back out1 out2
+# IN1 = 15
+# IN2 = 14
+# ENABLE_A = 18
 
-# Linear Actuator Right
-IN5 = 10
-IN6 = 9
-ENABLE_C = 11
+# # Linear Actuator Right
+# IN5 = 10
+# IN6 = 9
+# ENABLE_C = 11
 
 # Aiming Motor
 AIMING_MOTOR_FREQ = 100
 AIMING_MOTOR_DC = 25
-IN7 = 27
-IN8 = 17
-ENABLE_D = 22
+# IN7 = 27
+# IN8 = 17
+# ENABLE_D = 22
 AIMING_DEADBAND = 1 # Degrees
 KP = 1
 KI = 0

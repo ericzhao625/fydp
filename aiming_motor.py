@@ -103,4 +103,4 @@ class AimingMotor(HBridge):
 
     def left(self, speed):
         if self.status != TOO_FAR_LEFT:
-            self.backward(speed)
+            self.reverse(speed)

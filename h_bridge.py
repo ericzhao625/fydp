@@ -3,13 +3,13 @@ import atexit
 
 FORWARD = 1
 STOPPED = 0
-BACKWARD = -1
+REVERSE = -1
 
 class HBridge:
     """
     A class to control an H-Bridge motor driver using Raspberry Pi GPIO.
 
-    This class provides methods to drive a motor forward, backward, stop it,
+    This class provides methods to drive a motor forward, reverse, stop it,
     and safely clean up GPIO resources.
     
     Attributes:
@@ -95,19 +95,19 @@ class HBridge:
             self.pi.write(self.in1, 1)
             self.direction = FORWARD
 
-    def backward(self, speed):
+    def reverse(self, speed):
         """
-        Drives the motor backward by setting IN1 low and IN2 high.
+        Drives the motor reverse by setting IN1 low and IN2 high.
         
         Args:
             pwm (float): Motor PWM value
         """
         self.set_duty_cycle(speed)
 
-        if self.direction != BACKWARD:
+        if self.direction != REVERSE:
             self.pi.write(self.in1, 0)
             self.pi.write(self.in2, 1)
-            self.direction = BACKWARD
+            self.direction = REVERSE
         
     def stop(self):
         """
@@ -116,6 +116,6 @@ class HBridge:
         self.set_duty_cycle(0)
 
         if self.direction != STOPPED:
+            self.direction = STOPPED
             self.pi.write(self.in1, 0)
             self.pi.write(self.in2, 0)
-            self.direction = STOPPED
