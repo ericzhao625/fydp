@@ -1,5 +1,9 @@
-import RPi.GPIO as GPIO          
+import pigpio
+import atexit
 
+FORWARD = 1
+STOPPED = 0
+BACKWARD = -1
 
 class HBridge:
     """
@@ -9,85 +13,109 @@ class HBridge:
     and safely clean up GPIO resources.
     
     Attributes:
-        pin1 (int): GPIO pin for motor direction control (IN1).
-        pin2 (int): GPIO pin for motor direction control (IN2).
+        in1 (int): GPIO pin for motor direction control (IN1).
+        in2 (int): GPIO pin for motor direction control (IN2).
         enable (int): GPIO pin for PWM control (EN).
         pwm_freq (int): Frequency of the PWM signal.
-        pwm_dc (int): Initial duty cycle of the PWM signal.
-        pwm (GPIO.PWM): PWM control object.
+        min_duty_cycle (float): Minimum duty cycle allowed,
+        max_duty_cycle (float): Maximum duty cycle allowed,
+        pi: pigpio.pi() object
+        pwm_range (int): Resolution of duty cycle
     """
-    def __init__(self, in1, in2, enable, pwm_freq, pwm_dc):
+
+    def __init__(
+        self,
+        in1: int,
+        in2: int,
+        enable: int,
+        pwm_freq: int,
+        min_duty_cycle: float=0,
+        max_duty_cycle: float=100,
+        pi=None,
+        pwm_range: int=511,
+    ):
         """
         Initializes the H-Bridge motor driver and sets up GPIO pins.
 
         Args:
+            
             in1 (int): GPIO pin for motor direction (IN1).
             in2 (int): GPIO pin for motor direction (IN2).
             enable (int): GPIO pin for enabling the motor (PWM pin).
             pwm_freq (int): Frequency of the PWM signal in Hz.
-            pwm_dc (int): Initial duty cycle (0-100%).
+            min_duty_cycle (float): Minimum duty cycle for movement.
+            max_duty_cycle (float): Maximum duty cycle allowed.
+            pi: pigpio.pi() object.
+            pwm_range (int): Resolution of pwm value (25-40000)
         """
-        self.pin1 = in1
-        self.pin2 = in2
+        self.in1 = in1
+        self.in2 = in2
         self.enable = enable
         self.pwm_freq = pwm_freq
-        self.pwm_dc = pwm_dc
+        self.pwm_range = pwm_range
 
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setup(self.pin1,GPIO.OUT)
-        GPIO.setup(self.pin2,GPIO.OUT)
-        GPIO.setup(self.enable,GPIO.OUT)
-        GPIO.output(self.pin1,GPIO.LOW)
-        GPIO.output(self.pin2,GPIO.LOW)
-        self.pwm = GPIO.PWM(self.enable, self.pwm_freq)
-        self.pwm.start(self.pwm_dc)
+        self.min_duty_cycle = min_duty_cycle / 100 * pwm_range
+        self.duty_cycle_range = (max_duty_cycle - min_duty_cycle) / 100 * pwm_range
 
-    def forward(self, pwm):
+        self.pwm_dc = 0
+        self.direction = STOPPED
+
+        if not pi:
+            self.pi = pigpio.pi()
+        else:
+            self.pi = pi
+
+        self.pi.set_mode(enable, pigpio.OUTPUT)
+        self.pi.set_mode(in1, pigpio.OUTPUT)
+        self.pi.set_mode(in2, pigpio.OUTPUT)
+
+        self.pi.set_PWM_frequency(enable, pwm_freq)
+        self.pi.set_PWM_range(enable, pwm_range)
+
+        atexit.register(self.stop)
+
+    def set_duty_cycle(self, speed: float):
+        duty_cycle = round((speed / 100) * self.duty_cycle_range + self.min_duty_cycle)
+        # print(f"Setting duty cycle to {duty_cycle} / {self.pwm_range} ({duty_cycle} / {self.pwm_range})")
+        if duty_cycle != self.pwm_dc:
+            self.pi.set_PWM_dutycycle(self.enable, duty_cycle)
+            self.pwm_dc = duty_cycle
+
+    def forward(self, speed: float):
         """
         Drives the motor forward by setting IN1 high and IN2 low.
 
         Args:
-            pwm (float): Motor PWM value
+            speed (float): Speed in percent
         """
-        GPIO.output(self.pin1, GPIO.HIGH)
-        GPIO.output(self.pin2, GPIO.LOW)
-        self.pwm.ChangeDutyCycle(pwm)
+        self.set_duty_cycle(speed)
+        
+        if self.direction != FORWARD:
+            self.pi.write(self.in2, 0)
+            self.pi.write(self.in1, 1)
+            self.direction = FORWARD
 
-    def backward(self, pwm):
+    def backward(self, speed):
         """
         Drives the motor backward by setting IN1 low and IN2 high.
         
         Args:
             pwm (float): Motor PWM value
         """
-        GPIO.output(self.pin1,GPIO.LOW)
-        GPIO.output(self.pin2,GPIO.HIGH)
-        self.pwm.ChangeDutyCycle(pwm)
+        self.set_duty_cycle(speed)
+
+        if self.direction != BACKWARD:
+            self.pi.write(self.in1, 0)
+            self.pi.write(self.in2, 1)
+            self.direction = BACKWARD
         
     def stop(self):
         """
         Stops the motor by setting both IN1 and IN2 low.
         """
-        GPIO.output(self.pin1,GPIO.LOW)
-        GPIO.output(self.pin2,GPIO.LOW)
+        self.set_duty_cycle(0)
 
-    def stop_h_bridge(self):
-        """
-        Stops PWM.
-
-        This method stops the PWM signal and handles any cleanup errors gracefully.
-
-        Raises:
-            RuntimeError: If GPIO cleanup fails.
-            Exception: If an unexpected error occurs.
-        """
-        print('Stopping h bridge control')
-
-        try:
-            self.pwm.stop()
-        except RuntimeError as e:
-            print(f"Warning: GPIO cleanup failed - {e}")
-        except Exception as e:
-            print(f"Unexpected error during cleanup: {e}")
-
-        print('H bridge control stopped')
+        if self.direction != STOPPED:
+            self.pi.write(self.in1, 0)
+            self.pi.write(self.in2, 0)
+            self.direction = STOPPED
