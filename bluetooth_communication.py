@@ -197,7 +197,7 @@ class Bluetooth:
         """
         # imu.cleanup()
         self.throw.stop_motor()
-        self.aim.stop_h_bridge()
+        self.aim.stop()
         self.cv.cap_release()
         cv2.destroyAllWindows()
         GPIO.cleanup()

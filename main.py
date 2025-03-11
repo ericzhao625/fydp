@@ -1,10 +1,11 @@
-# from bluetooth_communication import Bluetooth
-# from signal import pause
+from bluetooth_communication import Bluetooth
+from signal import pause
 from linear_actuator import LinearActuator
 from aiming_motor import AimingMotor
 from shooting_motor import ShootingMotor
 from battery_monitor import BatteryMonitor
-from imu import IMU
+# from imu import IMU
+from imu_uart_rvc import IMU
 
 import board
 import serial
@@ -19,12 +20,27 @@ LB_ACTUATOR_INA     = 1
 BATTERY_MONITOR_INA = 2
 
 # GPIO PIN NUMBERS
-
-LF_ACTUATOR_ENABLE  = 11
+# 0
+# 1
 I2C_SDA             = 2
 I2C_SCL             = 3
+# 4
+# 5
+# 6
+# 7
 LF_ACTUATOR_IN1     = 9
 LF_ACTUATOR_IN2     = 10
+LF_ACTUATOR_ENABLE  = 11
+
+SPI0_CE0 = 8 # BNO085 CS
+SPI0_MISO = 9 # BNO085 SDA
+SPI0_MOSI = 10 # BNO085 DI
+SPI0_SCLK = 11 # BNO085 SCL
+# BNO085 INT
+# BNO085 RST
+
+
+
 SHOOTING_PWM        = 12
 RIGHT_LIMIT_SWITCH  = 13
 UART_TX             = 14
@@ -57,8 +73,9 @@ class Frisbeast():
             i2c_lock=self.i2c_lock,
         )
 
-        # self.uart = serial.Serial("/dev/serial0", 115200)
-        self.imu = IMU(i2c=self.i2c, i2c_lock=self.i2c_lock)
+        self.uart = serial.Serial("/dev/serial0", 115200)
+        self.imu = IMU(self.uart)
+        # self.imu = IMU(i2c=self.i2c, i2c_lock=self.i2c_lock)
 
         self.aiming_motor = AimingMotor(
             in1=AIMING_IN1,
@@ -101,7 +118,7 @@ class Frisbeast():
             pi=self.pi,
         )
     
-    def shutdown(self):
+    def stop(self):
         # replace below with centering before stopping
         self.aiming_motor.stop()
         # replace below with move until end before stopping
@@ -114,14 +131,27 @@ class Frisbeast():
 def set_angle(goal_yaw, goal_pitch):
     # temp testing
     while True:
-        yaw, pitch, _roll = frisbeast.imu.imu_readings()
-        yaw = -yaw # left/right side high low
+        yaw, pitch, roll = frisbeast.imu.imu_readings()
+        # yaw = -yaw # left/right side high low
+        if goal_yaw < 0:
+            frisbeast.right_actuator.up(100)
+        elif goal_yaw > 0:
+            frisbeast.right_actuator.down(100)
+
+        if roll > 0:
+            roll = 360-177.81 - roll
+        elif -177.81 < roll < 0:
+            roll = -177.81 - roll
+        else:
+            roll = -roll - 177.81
+        
+        yaw = -roll
         pitch = pitch # up/back side
 
         yaw_error = goal_yaw - yaw
         pitch_error = goal_pitch - pitch
 
-        if abs(yaw_error) < 0.5 and abs(pitch_error) < 0.2:
+        if abs(yaw_error) < 0.2 and abs(pitch_error) < 0.2:
             frisbeast.left_back_actuator.stop()
             frisbeast.left_front_actuator.stop()
             print(f"goal reached, yaw: {yaw}, pitch: {pitch}")
@@ -141,18 +171,18 @@ def set_angle(goal_yaw, goal_pitch):
             else:
                 frisbeast.left_front_actuator.down(speed)
                 frisbeast.left_back_actuator.up(speed)
-        
+        print(f"yaw: {yaw}, pitch: {pitch}")
         time.sleep(0.2)
                 
 
 if __name__ == '__main__':
     frisbeast = Frisbeast()
-    # bluetooth = Bluetooth()
-    # try:
-    #     pause()
-    # except KeyboardInterrupt:
-    #     print("Keyboard Interrupt detected! Cleaning up resources.")
+    bluetooth = Bluetooth()
+    try:
+        pause()
+    except KeyboardInterrupt:
+        print("Keyboard Interrupt detected! Cleaning up resources.")
 
-    # finally:
-    #     bluetooth.cleanup()
+    finally:
+        bluetooth.cleanup()
 

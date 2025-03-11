@@ -1,9 +1,18 @@
 import constants
 from h_bridge import HBridge
+from aiming_motor import AimingMotor
 from pid import PIDController
 
+FREQ = 10000
+MIN_DUTY_CYCLE = 60
+MAX_DUTY_CYCLE = 100
+RESET_LIMIT_SWITCH_SPEED = 25
 
-class Aim(HBridge):
+OK = 0
+TOO_FAR_LEFT = 1
+TOO_FAR_RIGHT = 2
+
+class Aim(AimingMotor):
     """
     A class to control the aiming mechanism using an H-Bridge motor driver.
 
@@ -15,11 +24,16 @@ class Aim(HBridge):
     """
     def __init__(
         self,
-        in1=constants.IN7,
-        in2=constants.IN8,
-        enable=constants.ENABLE_D,
-        pwm_freq=constants.AIMING_MOTOR_FREQ,
-        pwm_dc=constants.AIMING_MOTOR_DC
+        in1: int=27,
+        in2: int=17,
+        enable: int=22,
+        left_limit_switch: int=19,
+        right_limit_switch: int=13,
+        pwm_freq: int=FREQ,
+        min_duty_cycle: float=MIN_DUTY_CYCLE,
+        max_duty_cycle: float=MAX_DUTY_CYCLE,
+        pi=None,
+        pwm_range: int=511,
     ):
         """
         Initializes the Aim control system by setting up the H-Bridge motor.
@@ -31,7 +45,7 @@ class Aim(HBridge):
             pwm_freq (int): Frequency of the PWM signal in Hz (default: constants.AIMING_MOTOR_FREQ).
             pwm_dc (int): Initial duty cycle (0-100%) (default: constants.AIMING_MOTOR_DC).
         """
-        super().__init__(in1, in2, enable, pwm_freq, pwm_dc)
+        super().__init__() # TEMP
         self.deadband = constants.AIMING_DEADBAND
         self.pid_controller = PIDController()
 
@@ -56,9 +70,9 @@ class Aim(HBridge):
             pwm = self.pid_controller.compute(angle)
             if pwm is not None:
                 if angle > 0:
-                    self.forward(pwm)
+                    self.right(pwm)
                 else:
-                    self.backward(pwm)
+                    self.left(pwm)
 
     def turn(self, direction):
         """
@@ -68,12 +82,10 @@ class Aim(HBridge):
             direction (string): command from app.
         """
         if direction == 'Direction:Left':
-            self.forward(self.pwm_dc)
-            self.stop()    
+            self.left(self.pwm_dc)
         
         elif direction == 'Direction:Right':
-            self.backward(self.pwm_dc)
-            self.stop()
+            self.right(self.pwm_dc)
         
         else:
             self.stop()

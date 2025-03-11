@@ -22,7 +22,7 @@ class IMU:
         bno (BNO08X_I2C): BNO085 sensor
     """
 
-    def __init__(self, i2c_lock, i2c=None, buffer_size=constants.IMU_BUFFER_SIZE): 
+    def __init__(self, spi=None, buffer_size=constants.IMU_BUFFER_SIZE): 
         """
         Initializes the buffers for smoothing and IMU sensor for readings.
 
@@ -33,10 +33,9 @@ class IMU:
         self.pitch_buffer = deque(maxlen=buffer_size)
         self.roll_buffer = deque(maxlen=buffer_size)
     
-        self.i2c_lock = i2c_lock
-        self.i2c, self.bno = self.initialize_imu(i2c)
+        self.i2c, self.bno = self.initialize_imu(spi)
 
-    def initialize_imu(self, i2c):
+    def initialize_imu(self, spi):
         """
         Initializes the I2C and the BNO085 sensor to get readings.
 
@@ -54,9 +53,9 @@ class IMU:
         for i in range(5):
             try:
                 # Initialize I2C
-                if not i2c:
-                    i2c = busio.I2C(board.SCL, board.SDA)
-                bno = BNO08X_I2C(i2c)
+                if not spi:
+                    i2c = busio.SPI(board.GP11, board.GP10, board.GP9)
+                bno = BNO08X_SPI(spi)
 
                 # Enable Quaternion readings for sensor
                 bno.enable_feature(BNO_REPORT_ROTATION_VECTOR)

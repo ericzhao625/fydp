@@ -35,6 +35,8 @@ class LinearActuator(HBridge):
         max_duty_cycle: float=MAX_DUTY_CYCLE,
         pi=None,
         pwm_range: int=511,
+        up_time: float=1, # time to mvoe from bottom to top
+        down_time: float=1,
     ):
         """
         Initializes the linear actuator control system by setting up the H-Bridge motor.
@@ -57,6 +59,8 @@ class LinearActuator(HBridge):
             state_monitor_thread = threading.Thread(target=self.state_monitor)
             state_monitor_thread.daemon = True
             state_monitor_thread.start()
+
+    # TODO: add function to ROUGHLY move to half height, hardcoded timings
 
     def state_monitor(self):
         while True:
