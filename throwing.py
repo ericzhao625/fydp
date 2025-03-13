@@ -28,29 +28,29 @@ class Throw:
         stop_motor(): Stops the throwing motor and handles cleanup.
     """
 
-    def __init__(self):
+    def __init__(self, shooting_motor):
         """
         Initializes the Throw class with GPIO setup for motor and solenoid control.
         """
-        self.pwm_pin = constants.PWM_PIN
+        # self.pwm_pin = constants.PWM_PIN
         self.min_distance = constants.MIN_DISTANCE
         self.max_distance = constants.MAX_DISTANCE
-        self.min_pwm = constants.MIN_PWM
-        self.max_pwm = constants.MAX_PWM
+        # self.min_pwm = constants.MIN_PWM
+        # self.max_pwm = constants.MAX_PWM
 
         self.solenoid_pin = constants.SOLENOID_PIN
         self.cool_down = constants.COOL_DOWN
         self.last_activation_time = 0
 
         # GPIO initialization
-        GPIO.setmode(GPIO.BCM)
+        # GPIO.setmode(GPIO.BCM)
 
-        GPIO.setup(self.pwm_pin, GPIO.OUT)
-        self.pwm = GPIO.PWM(self.pwm_pin, constants.PWM_FREQ)
-        self.pwm.start(constants.PWM_INIT_DC)
+        # GPIO.setup(self.pwm_pin, GPIO.OUT)
+        # self.pwm = GPIO.PWM(self.pwm_pin, constants.PWM_FREQ)
+        # self.pwm.start(constants.PWM_INIT_DC)
 
-        GPIO.setup(self.solenoid_pin, GPIO.OUT)
-        GPIO.output(self.solenoid_pin, GPIO.LOW)
+        # GPIO.setup(self.solenoid_pin, GPIO.OUT)
+        # GPIO.output(self.solenoid_pin, GPIO.LOW)
 
 
     def distance_to_pwm(self, distance):

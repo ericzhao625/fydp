@@ -4,7 +4,7 @@ from aiming_motor import AimingMotor
 from pid import PIDController
 
 FREQ = 10000
-MIN_DUTY_CYCLE = 60
+MIN_DUTY_CYCLE = 70
 MAX_DUTY_CYCLE = 100
 RESET_LIMIT_SWITCH_SPEED = 25
 
@@ -64,10 +64,12 @@ class Aim(AimingMotor):
         # Ignore small angle deviations
         if abs(angle) < self.deadband:
             self.stop()
-        
         # Compute PWM
         else:
-            pwm = self.pid_controller.compute(angle)
+            if angle < 0:
+                pwm = self.pid_controller.compute(angle + self.deadband)
+            else:
+                pwm = self.pid_controller.compute(angle - self.deadband)
             if pwm is not None:
                 if angle > 0:
                     self.right(pwm)
@@ -81,11 +83,12 @@ class Aim(AimingMotor):
         Args:
             direction (string): command from app.
         """
+        print(f"direction: {direction}")
         if direction == 'Direction:Left':
-            self.left(self.pwm_dc)
+            self.left(50)
         
         elif direction == 'Direction:Right':
-            self.right(self.pwm_dc)
+            self.right(50)
         
         else:
             self.stop()

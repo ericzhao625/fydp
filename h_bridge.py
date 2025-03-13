@@ -1,4 +1,5 @@
 import pigpio
+import threading
 import atexit
 
 FORWARD = 1
@@ -59,6 +60,8 @@ class HBridge:
 
         self.pwm_dc = 0
         self.direction = STOPPED
+        self.moving = threading.Event()
+        self.stopped = threading.Event()
 
         if not pi:
             self.pi = pigpio.pi()
@@ -75,8 +78,12 @@ class HBridge:
         atexit.register(self.stop)
 
     def set_duty_cycle(self, speed: float):
-        duty_cycle = round((speed / 100) * self.duty_cycle_range + self.min_duty_cycle)
-        # print(f"Setting duty cycle to {duty_cycle} / {self.pwm_range} ({duty_cycle} / {self.pwm_range})")
+        if speed == 0:
+            duty_cycle = 0
+        else:
+            duty_cycle = round((min(100, speed) / 100) * self.duty_cycle_range + self.min_duty_cycle)
+
+        # print(f"Setting duty cycle to {duty_cycle} / {self.pwm_range}: ({duty_cycle / self.pwm_range}%)")
         if duty_cycle != self.pwm_dc:
             self.pi.set_PWM_dutycycle(self.enable, duty_cycle)
             self.pwm_dc = duty_cycle
@@ -89,6 +96,8 @@ class HBridge:
             speed (float): Speed in percent
         """
         self.set_duty_cycle(speed)
+        self.moving.set()
+        self.stopped.clear()
         
         if self.direction != FORWARD:
             self.pi.write(self.in2, 0)
@@ -103,6 +112,8 @@ class HBridge:
             pwm (float): Motor PWM value
         """
         self.set_duty_cycle(speed)
+        self.moving.set()
+        self.stopped.clear()
 
         if self.direction != REVERSE:
             self.pi.write(self.in1, 0)
@@ -119,3 +130,6 @@ class HBridge:
             self.direction = STOPPED
             self.pi.write(self.in1, 0)
             self.pi.write(self.in2, 0)
+        
+        self.moving.clear()
+        self.stopped.set()

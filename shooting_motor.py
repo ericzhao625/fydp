@@ -1,5 +1,6 @@
 import pigpio
 import atexit
+import time
 
 FREQ = 125
 MIN_SPEED = 0
@@ -72,7 +73,9 @@ class ShootingMotor:
             self.pi = pi
 
         self.pi.set_mode(pwm, pigpio.OUTPUT)
+        self.stop()
         self.pi.set_PWM_frequency(pwm, pwm_freq)
+        self.stop()
         self.pi.set_PWM_range(pwm, pwm_range)
         self.stop()
 
@@ -81,9 +84,14 @@ class ShootingMotor:
     def set_dutycycle(self, pulse_width_us):
         pwm_dc = round(pulse_width_us / self.period_us * self.pwm_range)
         
-        if pwm_dc != self.pwm_dc:
-            self.pi.set_PWM_dutycycle(self.pwm, pwm_dc)
-            self.pwm_dc = pwm_dc
+        # if pwm_dc != self.pwm_dc:
+        #     if pwm_dc > self.pwm_dc:
+        #         for i in range(10):
+        #             self.pi.set_PWM_dutycycle(self.pwm, (pwm_dc - self.pwm_dc) / 10 * (i+1) + self.pwm_dc)
+        #             time.sleep(0.5)
+        #     else:
+        self.pi.set_PWM_dutycycle(self.pwm, pwm_dc)
+        self.pwm_dc = pwm_dc
 
     def forward(self, speed: float):
         """
@@ -92,6 +100,7 @@ class ShootingMotor:
         Args:
             speed (float): Speed in percent
         """
+        
         speed = speed / 100 * self.speed_range + self.min_speed
         pulse_width_us = speed / 100 * self.FORWARD_RANGE_US + self.FORWARD_MIN_US
         self.set_dutycycle(pulse_width_us)

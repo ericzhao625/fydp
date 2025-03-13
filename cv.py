@@ -5,6 +5,7 @@ import numpy as np
 import os
 import RPi.GPIO as GPIO
 import time
+import queue, threading, time
 
 import constants
 
@@ -37,8 +38,14 @@ class CV():
             print("Error: Could not open camera.")
             self.cap = None  # Prevent further errors if camera fails
         else:
-            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
             self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+
+        self.lock = threading.Lock()
+        self.q = queue.Queue()
+        t = threading.Thread(target=self._reader)
+        t.daemon = True
+        t.start()
 
         self.distance_buffer = deque(maxlen=constants.CV_BUFFER_SIZE)
 
@@ -50,6 +57,25 @@ class CV():
         self.camera_pixel_height = constants.CAMERA_PIXEL_HEIGHT
         self.camera_sensor_height = constants.CAMERA_SENSOR_HEIGHT
 
+    def _reader(self):
+        while True:
+            with self.lock:
+                ret = self.cap.grab()
+            if not ret:
+                continue
+            time.sleep(0.02)
+        while True:
+            ret, frame = self.cap.read()
+            if not ret:
+                continue
+            if not self.q.empty():
+                try:
+                    self.q.get_nowait()   # discard previous (unprocessed) frame
+                except queue.Empty:
+                    pass
+
+            self.q.put(frame)
+
     def read_frame(self):
         """
         Captures a frame from the camera.
@@ -57,6 +83,11 @@ class CV():
         Returns:
             frame (np.ndarray or None): Captured frame, or None if the capture fails.
         """
+        with self.lock:
+            _, frame = self.cap.retrieve()
+        return frame
+        self.active = True
+        return self.q.get()
         if self.cap is None:
             print("Camera not initialized.")
             return None

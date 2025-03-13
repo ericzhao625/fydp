@@ -32,8 +32,8 @@ class PIDController:
         self.Ki = constants.KI
         self.Kd = constants.KD
         self.integral = 0
-        self.min_pwm = constants.PID_MAX_PWM
-        self.max_pwm = constants.PID_MIN_PWM
+        self.min_pwm = constants.PID_MIN_PWM
+        self.max_pwm = constants.PID_MAX_PWM
 
         self.prev_error = 0
         self.last_time = time.time()
@@ -52,6 +52,7 @@ class PIDController:
             Exception: If error is None
         """
         try:
+            print(f"ERROR: {error}")
             current_time = time.time()
             dt = current_time - self.last_time
 
@@ -73,13 +74,13 @@ class PIDController:
             pwm = P + I + D
 
             # Constrain PWM output
-            pwm = max(self.min_pwm, min(self.max_pwm, abs(pwm)))
+            # pwm = max(self.min_pwm, min(self.max_pwm, abs(pwm)))
 
             # Update previous values
             self.prev_error = error
             self.last_time = current_time
-
-            return pwm
+            print(f"PID PWM: {pwm}")
+            return abs(pwm)
 
         except Exception as e:
             print(f'Unexpected error in PID controller: {e}')

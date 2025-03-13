@@ -5,6 +5,7 @@ import busio
 import serial
 from collections import deque
 from scipy.spatial.transform import Rotation as R
+import pigpio
 
 import constants
 import time
@@ -23,18 +24,37 @@ class IMU:
         bno (BNO08X_I2C): BNO085 sensor
     """
 
-    def __init__(self, uart=None, buffer_size=constants.IMU_BUFFER_SIZE): 
+    def __init__(self, reset_pin, uart=None, pi=None, buffer_size=constants.IMU_BUFFER_SIZE): 
         """
         Initializes the buffers for smoothing and IMU sensor for readings.
 
         Args:
             buffer_size (int): the maximum number of past readings to store for smoothing.
         """
-        self.yaw_buffer = deque(maxlen=buffer_size)
-        self.pitch_buffer = deque(maxlen=buffer_size)
-        self.roll_buffer = deque(maxlen=buffer_size)
+        # self.yaw_buffer = deque(maxlen=buffer_size)
+        # self.pitch_buffer = deque(maxlen=buffer_size)
+        # self.roll_buffer = deque(maxlen=buffer_size)
+        self.reset_pin = reset_pin
+        self.yaw = None
+        self.pitch = None
+        self.roll = None
+
+        if not pi:
+            self.pi = pigpio.pi()
+        else:
+            self.pi = pi
     
         self.uart, self.rvc = self.initialize_imu(uart)
+        measure_thread = threading.Thread(target=self.measure_thread)
+        measure_thread.daemon = True
+        measure_thread.start()
+
+
+    def measure_thread(self):
+        while True:
+            self.roll, self.pitch, self.yaw, _, __, ___ = self.rvc.heading
+            time.sleep(0.02)
+
 
     def initialize_imu(self, uart):
         """
@@ -59,8 +79,10 @@ class IMU:
                 print("initializing uart")
             print("uart initialized")
 
+            self.pi.set_mode(self.reset_pin, pigpio.OUTPUT)
+
             rvc = BNO08x_RVC(uart)
-            print("bno initialized")
+            print("RVC initialized")
 
             # Enable Quaternion readings for sensor
             yaw, pitch, roll, x_accel, y_accel, z_accel = rvc.heading
@@ -74,62 +96,13 @@ class IMU:
             print(f'IMU initialization failed: {e}')
             return None, None
 
-
-    def read_quaternion(self):
-        """
-        Get Quaternion readings from IMU.
-
-        Returns:
-            Tuple[Optional[float], Optional[float], Optional[float], Optional[float]]: 
-            Quaternion components (i, j, k, real), or (None, None, None, None) if an error occurs.
-
-        Raises:
-            KeyError: If the IMU returns an unexpected data format.
-            OSError: If there's a possible I2C disconnection.
-            Exception: For any other unexpected errors.
-        """
-        # retry 3 times
-        for i in range(3):
-            try:
-                quat_i, quat_j, quat_k, quat_real = self.bno.quaternion
-                return quat_i, quat_j, quat_k, quat_real
-            
-            # except KeyError as e:
-            #     print(f'KeyError: IMU returned unexpected data format: {e}')
-            # except OSError as e:
-            #     print(f'OSError: Possible I2C disconnection: {e}')
-            except Exception as e:
-                print(f'Unexpected error reading gyro: {e}')
-            
-            time.sleep(0.01 * (i + 1))
-
-        return None, None, None, None
-
-
-    def quaternion_to_euler(self, w, x, y, z):
-        """
-        Converts a quaternion (w, x, y, z) into Euler angles (yaw, pitch, roll).
-
-        The Euler angles are computed using the 'ZYX' intrinsic rotation sequence, where:
-            - Yaw is the rotation around the Z-axis.
-            - Pitch is the rotation around the Y-axis.
-            - Roll is the rotation around the X-axis.
-
-        Args:
-            w (float): Scalar (real) part of the quaternion.
-            x (float): X component (imaginary part).
-            y (float): Y component (imaginary part).
-            z (float): Z component (imaginary part).
-
-        Returns:
-            Tuple[float, float, float]: Euler angles (yaw, pitch, roll) in degrees.
-        """
-        
-        quaternion_readings = R.from_quat([x, y, z, w])
-        euler_angles = quaternion_readings.as_euler('zyx', degrees=True)
-
-        return euler_angles
-
+    def reset(self):
+        self.pi.write(self.reset_pin, 1)
+        time.sleep(0.1)
+        self.pi.write(self.reset_pin, 0)
+        time.sleep(0.1)
+        self.pi.write(self.reset_pin, 1)
+        time.sleep(0.1)
 
     def imu_readings(self):
         """
@@ -141,7 +114,7 @@ class IMU:
         """
 
         # Get Quaternion readings from IMU
-        yaw, pitch, roll, x_accel, y_accel, z_accel = self.rvc.heading
+        # yaw, pitch, roll, x_accel, y_accel, z_accel = self.rvc.heading
         # print("Yaw: %2.2f Pitch: %2.2f Roll: %2.2f Degrees" % (yaw, pitch, roll))
         # print("Acceleration X: %2.2f Y: %2.2f Z: %2.2f m/s^2" % (x_accel, y_accel, z_accel))
         # print(f'I: {quat_i:0.6f} J: {quat_j:0.6f} K: {quat_k:0.6f} Real: {quat_real:0.6f}')
@@ -151,8 +124,12 @@ class IMU:
         #     return None, None, None
 
         # Convert Quaternion readings to Euler angles
-
-        return yaw, pitch, roll
+        # for i in range(5):
+        try:
+            return self.roll, self.pitch, self.yaw
+        except Exception as e:
+            print(f"Exception {e}")
+            return None, None, None
 
 
     def smooth_readings(self):

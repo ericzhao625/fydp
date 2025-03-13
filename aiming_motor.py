@@ -74,6 +74,10 @@ class AimingMotor(HBridge):
 
     def limit_switch_state_machine(self):
         while True:
+            # if self.debouncing.wait():
+            #     self.stop()
+            #     time.sleep(0.1)
+            #     self.debouncing.clear()
             if self.debouncing.wait(): 
                 if self.status == TOO_FAR_LEFT:
                     self.right(RESET_LIMIT_SWITCH_SPEED)
@@ -82,7 +86,7 @@ class AimingMotor(HBridge):
                 else:
                     self.stop()
 
-                time.sleep(0.1)
+                time.sleep(0.01)
                 self.debouncing.clear()            
 
     def limit_switch_ISR(self, GPIO, level, _tick):
