@@ -38,8 +38,8 @@ class CV():
             print("Error: Could not open camera.")
             self.cap = None  # Prevent further errors if camera fails
         else:
-            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 360)
 
         self.lock = threading.Lock()
         self.q = queue.Queue()
@@ -56,25 +56,31 @@ class CV():
         self.height_to_shoulders = constants.HEIGHT_TO_SHOULDERS
         self.camera_pixel_height = constants.CAMERA_PIXEL_HEIGHT
         self.camera_sensor_height = constants.CAMERA_SENSOR_HEIGHT
+        self.last_frame_time = 0
 
     def _reader(self):
         while True:
             with self.lock:
+                grab_time = time.time()
                 ret = self.cap.grab()
-            if not ret:
-                continue
-            time.sleep(0.02)
-        while True:
-            ret, frame = self.cap.read()
-            if not ret:
-                continue
-            if not self.q.empty():
-                try:
-                    self.q.get_nowait()   # discard previous (unprocessed) frame
-                except queue.Empty:
-                    pass
 
-            self.q.put(frame)
+            if not ret:
+                continue
+            else:
+                self.last_frame_time = grab_time
+
+            time.sleep(0.015)
+        # while True:
+        #     ret, frame = self.cap.read()
+        #     if not ret:
+        #         continue
+        #     if not self.q.empty():
+        #         try:
+        #             self.q.get_nowait()   # discard previous (unprocessed) frame
+        #         except queue.Empty:
+        #             pass
+
+        #     self.q.put(frame)
 
     def read_frame(self):
         """
@@ -83,21 +89,23 @@ class CV():
         Returns:
             frame (np.ndarray or None): Captured frame, or None if the capture fails.
         """
+        # frame = None
         with self.lock:
-            _, frame = self.cap.retrieve()
-        return frame
-        self.active = True
-        return self.q.get()
-        if self.cap is None:
-            print("Camera not initialized.")
-            return None
+            # while frame is None:
+            return self.cap.retrieve()[1], self.last_frame_time
+        # return frame
+        # self.active = True
+        # return self.q.get()
+        # if self.cap is None:
+        #     print("Camera not initialized.")
+        #     return None
         
-        ret, frame = self.cap.read()
-        if not ret:
-            print("Error: Failed to capture frame.")
-            return None
+        # ret, frame = self.cap.read()
+        # if not ret:
+        #     print("Error: Failed to capture frame.")
+        #     return None
 
-        return frame
+        # return frame
 
 
     def process_frame(self, frame):
@@ -118,9 +126,10 @@ class CV():
 
         try:
             # Convert the image from BGR to RGB
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            # frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             # Get pose model results
-            pose_results = self.pose.process(frame_rgb)
+            return self.pose.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+            # pose_results = self.pose.process(frame_rgb)
 
             return frame_rgb, pose_results
 
@@ -230,15 +239,15 @@ class CV():
                 self.calculate_length(joints['right leg'][1], joints['right leg'][2])
             )/2
             relative_height = average_torso_length + average_femur_length + average_tibia_length
-            print(f'Relative height: {relative_height}')
+            # print(f'Relative height: {relative_height}')
 
             distance_to_object = (self.camera_focal_length * (self.user_height * 10) * self.height_to_shoulders * self.camera_pixel_height) / ((relative_height * self.camera_pixel_height) * self.camera_sensor_height) / 1000
 
             return distance_to_object
 
         except TypeError as e:
-            print(f'TypeError: Joints Not Found {e}')
-        return None
+            # print(f'TypeError: Joints Not Found {e}')
+            return None
 
     def smooth_distance(self, frame, joints):
         """
@@ -258,6 +267,8 @@ class CV():
 
         if distance is not None:
             self.distance_buffer.append(distance)
+        else:
+            self.distance_buffer.append(0)
         try:
             averaged_distance = sum(self.distance_buffer) / len(self.distance_buffer)
             return averaged_distance
@@ -285,17 +296,17 @@ class CV():
                 percentage_difference = (body_position - constants.CENTER) * 2
 
                 angle_degrees = percentage_difference * 22.5
-                angle_radians = np.radians(angle_degrees)
+                # angle_radians = np.radians(angle_degrees)
 
-                lateral_distance = distance * np.tan(angle_radians)
+                # lateral_distance = distance * np.tan(angle_radians)
 
-                print(f'Angle: {angle_degrees} degrees, lateral distance: {lateral_distance}m')
+                # print(f'Angle: {angle_degrees} degrees, lateral distance: {lateral_distance}m')
 
                 return angle_degrees
 
         except TypeError as e:
-            print(f'TypeError: Joints Not Found {e}')
-        return None
+            # print(f'TypeError: Joints Not Found {e}')
+            return None
 
     def pose_estimation(self, frame, joints, angle):
         """
@@ -317,7 +328,7 @@ class CV():
             return None
 
         # Check for centering
-        if all(element.visibility > 0.1 for element in joints['body']):
+        if all(element.visibility > 0.2 for element in joints['body']):
             body_position = sum(element.x for element in joints['body']) / len(joints['body'])
             if abs(angle) < self.pose_tolerance:
                 if any(element.y < joints['nose'].y for element in joints['right arm']) or \

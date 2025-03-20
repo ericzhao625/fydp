@@ -1,6 +1,7 @@
 from adafruit_bno08x import BNO_REPORT_ROTATION_VECTOR
 from adafruit_bno08x.i2c import BNO08X_I2C
 from adafruit_bno08x.spi import BNO08X_SPI
+import digitalio
 import board
 import busio
 from collections import deque
@@ -54,13 +55,13 @@ class IMU:
             try:
                 # Initialize I2C
                 if not spi:
-                    i2c = busio.SPI(board.GP11, board.GP10, board.GP9)
-                bno = BNO08X_SPI(spi)
+                    spi = busio.SPI(board.GP11, board.GP10, board.GP9)
+                bno = BNO08X_SPI(spi, digitalio.DigitalInOut())
 
                 # Enable Quaternion readings for sensor
                 bno.enable_feature(BNO_REPORT_ROTATION_VECTOR)
 
-                return i2c, bno
+                return spi, bno
 
             except Exception as e:
                 print(f'IMU initialization failed: {e}, retrying...')

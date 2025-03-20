@@ -3,8 +3,8 @@ import atexit
 import time
 
 FREQ = 125
-MIN_SPEED = 0
-MAX_SPEED = 100
+MIN_SPEED = 30
+MAX_SPEED = 80
 
 class ShootingMotor:
     """
@@ -53,6 +53,7 @@ class ShootingMotor:
 
         self.min_speed = min_speed
         self.speed_range = max_speed - min_speed
+        self.speed = 0
 
         self.period_us = 1 / pwm_freq * 1e6
         self.NEUTRAL_US = 1500
@@ -100,7 +101,7 @@ class ShootingMotor:
         Args:
             speed (float): Speed in percent
         """
-        
+        self.speed = speed
         speed = speed / 100 * self.speed_range + self.min_speed
         pulse_width_us = speed / 100 * self.FORWARD_RANGE_US + self.FORWARD_MIN_US
         self.set_dutycycle(pulse_width_us)

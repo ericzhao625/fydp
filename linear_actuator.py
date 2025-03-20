@@ -13,8 +13,8 @@ MIDDLE = 1
 TOP = 2
 UNKNOWN = 3
 
-UP_TIME = 15 # time to move from bottom to top
-DOWN_TIME = 12
+UP_TIME = 14 # time to move from bottom to top
+DOWN_TIME = 11
 
 class LinearActuator(HBridge):
     """

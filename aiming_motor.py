@@ -6,7 +6,7 @@ import time
 FREQ = 10000
 MIN_DUTY_CYCLE = 60
 MAX_DUTY_CYCLE = 100
-RESET_LIMIT_SWITCH_SPEED = 25
+RESET_LIMIT_SWITCH_SPEED = 30
 
 OK = 0
 TOO_FAR_LEFT = 1
@@ -45,10 +45,11 @@ class AimingMotor(HBridge):
             pwm_dc (int): Initial duty cycle (0-100%) (default: constants.LINEAR_ACTUATOR_DC).
         """
         super().__init__(in1, in2, enable, pwm_freq, min_duty_cycle, max_duty_cycle, pi, pwm_range)
-
         self.left_limit_switch = left_limit_switch
         self.right_limit_switch = right_limit_switch
+        self.strobing_mode = threading.Event()
         self.debouncing = threading.Event()
+        self.status_lock = threading.Lock()
 
         self.pi.set_mode(self.left_limit_switch, pigpio.INPUT)
         self.pi.set_mode(self.right_limit_switch, pigpio.INPUT)
@@ -61,45 +62,54 @@ class AimingMotor(HBridge):
 
         limit_switch_thread = threading.Thread(target=self.limit_switch_state_machine)
         limit_switch_thread.daemon = True
-        limit_switch_thread.start()
 
-        if not self.pi.read(self.left_limit_switch):
-            self.status = TOO_FAR_LEFT
-            self.right(RESET_LIMIT_SWITCH_SPEED)
-        elif not self.pi.read(self.right_limit_switch):
-            self.status = TOO_FAR_RIGHT
-            self.left(RESET_LIMIT_SWITCH_SPEED)
-        else:
-            self.status = OK
+        with self.status_lock:
+            if not self.pi.read(self.left_limit_switch):
+                self.status = TOO_FAR_LEFT
+                self.right(RESET_LIMIT_SWITCH_SPEED)
+            elif not self.pi.read(self.right_limit_switch):
+                self.status = TOO_FAR_RIGHT
+                self.left(RESET_LIMIT_SWITCH_SPEED)
+            else:
+                self.status = OK
+        
+        limit_switch_thread.start()
 
     def limit_switch_state_machine(self):
         while True:
-            # if self.debouncing.wait():
-            #     self.stop()
-            #     time.sleep(0.1)
-            #     self.debouncing.clear()
-            if self.debouncing.wait(): 
+            self.debouncing.wait()
+            with self.status_lock:
                 if self.status == TOO_FAR_LEFT:
                     self.right(RESET_LIMIT_SWITCH_SPEED)
                 elif self.status == TOO_FAR_RIGHT:
                     self.left(RESET_LIMIT_SWITCH_SPEED)
-                else:
+                elif not self.strobing_mode.is_set():
                     self.stop()
 
-                time.sleep(0.01)
-                self.debouncing.clear()            
+            time.sleep(0.01)
+            self.debouncing.clear()            
 
     def limit_switch_ISR(self, GPIO, level, _tick):
         if not self.debouncing.is_set():
-            if level == 0:
-                if GPIO == self.left_limit_switch:
-                    self.status = TOO_FAR_LEFT
+            with self.status_lock:
+                if level == 0:
+                    if GPIO == self.left_limit_switch:
+                        self.status = TOO_FAR_LEFT
+                    else:
+                        self.status = TOO_FAR_RIGHT
                 else:
-                    self.status = TOO_FAR_RIGHT
-            else:
-                self.status = OK
+                    self.status = OK
 
             self.debouncing.set()
+
+    # def set_strobing_mode(self, on):
+    #     if on:
+    #         self.strobing_mode.set()
+    #     else:
+    #         self.strobing_mode.clear()
+
+    # def get_strobing_mode(self):
+    #     return self.strobing_mode.is_set()
 
     def right(self, speed):
         if self.status != TOO_FAR_RIGHT:

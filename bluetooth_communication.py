@@ -5,10 +5,8 @@ import RPi.GPIO as GPIO
 from signal import pause
 import time
 
-from aiming import Aim
+# from aiming import Aim
 from cv import CV
-from imu import IMU
-from throwing import Throw
 from utils import display_metrics
 
 class Bluetooth:
@@ -39,14 +37,13 @@ class Bluetooth:
         # Initialize throwing motor and solenoid
         self.frisbeast = frisbeast
         self.frisbeast.calibrate()
-        self.frisbeast.goal_yaw = 4
-        self.frisbeast.goal_pitch = 14
+        self.frisbeast.goal_roll = 16.5
+        self.frisbeast.goal_pitch = 0
         self.frisbeast.activate_angle()
-        # self.frisbeast.deactivate_angle()
-        # self.throw = Throw()
+        self.motor_on_time = None
 
         # Initialize aiming
-        self.aim = Aim()
+        # self.aim = Aim()
 
         self.received_data = None
         self.running = True
@@ -67,6 +64,9 @@ class Bluetooth:
 
         self.task_thread = threading.Thread(target=self.main, daemon=True)
         self.task_thread.start()
+
+        self.height = 178
+        self.cv.set_height(178)
 
     def connect_handler(self):
         """
@@ -98,9 +98,11 @@ class Bluetooth:
         Function for autonomous operation.
         """
         # Capture frame
-        frame = self.cv.read_frame()
+        frame, grab_time = self.cv.read_frame()
+        # print(f"time between now and grab time: {time.time() - grab_time}")
         # Convert frame to RGB and get mediapipe output
-        frame_rgb, pose_results = self.cv.process_frame(frame)
+        # frame_rgb, pose_results = self.cv.process_frame(frame)
+        pose_results = self.cv.process_frame(frame)
         # Get the joints of interest
         joints = self.cv.extract_joints(pose_results)
 
@@ -109,47 +111,74 @@ class Bluetooth:
         # print(f'Distance: {distance}m')
 
         # Update throwing motor speed
-        # pwm_value = 0
-        if distance is not None and 20 > distance >= 3:
-            self.frisbeast.shooting_motor.forward(distance / 10 * 100)
+        # if distance is not None:
+        #     print(f"distance: {distance}")
+        if joints is not None and distance is not None and 7.5 > distance > 3.5 and self.frisbeast.level.is_set():
+            speed = distance / 7.5 * 100
+            speed_diff = self.frisbeast.shooting_motor.speed - speed
+            if speed_diff > 0:
+                self.frisbeast.shooting_motor.forward(
+                    min(
+                        speed,
+                        self.frisbeast.shooting_motor.speed + 10
+                    )
+                )
+            else:
+                self.frisbeast.shooting_motor.forward(speed)
+            
+            if self.motor_on_time is None:
+                self.motor_on_time = time.time()
+    
+            # self.frisbeast.shooting_motor.forward(speed)
         else:
             self.frisbeast.shooting_motor.stop()
+            self.motor_on_time = None
 
         # Get angle from center
         angle = self.cv.estimate_angle(frame, joints, distance)
 
         # Track player
-        # self.aim.track_player(angle)
-        if angle is not None:
-            if abs(angle) > 3:
-                self.frisbeast.fix_angle(angle)
-                time.sleep(0.1)
+        # if angle is not None:
+            # if abs(angle) > 3:
+        self.frisbeast.fix_angle(angle, grab_time)
+                # time.sleep(0.1)
 
         # Get player pose
         pose_estimation = self.cv.pose_estimation(frame, joints, angle)
         # print(f'Pose Estimation: {pose_estimation}')
 
         # Release frisbee
-        self.frisbeast.push_frisbee(distance, pose_estimation)
-        # self.throw.push_frisbee(distance, pose_estimation)
+        if self.motor_on_time is not None and time.time() - self.motor_on_time > 1:
+            self.frisbeast.push_frisbee(distance, pose_estimation)
 
-        if self.display:
-            # Display metrics
-            display_metrics(frame, distance, pwm_value, pose_estimation)
+        # if self.display:
+        #     # Display metrics
+        #     if distance is not None:
+        #         display_metrics(frame, distance, distance / 15 * 100, pose_estimation)
 
-            # Show the video feed with the landmarks
-            cv2.imshow("Frisbeast Vision", frame)
-            cv2.waitKey(1)
+        #     # Show the video feed with the landmarks
+        #     cv2.imshow("Frisbeast Vision", frame)
+        #     cv2.waitKey(1)
 
     def manual(self):
         """
         Function for manual operation.
         """
         self.frisbeast.shooting_motor.forward(self.speed)
-        self.aim.turn(self.command)
+
+        if self.command == 'Direction:Left':
+            self.frisbeast.aiming_motor.left(50)
+        
+        elif self.command == 'Direction:Right':
+            self.frisbeast.aiming_motor.right(50)
+        
+        else:
+            self.frisbeast.aiming_motor.stop()
+            # print('No turn')
+        # self.aim.turn(self.command)
 
         # angle_changed = False
-        print("looping")
+        # print("looping")
         self.frisbeast.goal_pitch = self.vertical
         self.frisbeast.goal_yaw = self.horizontal
         # if self.vertical != self.frisbeast.goal_pitch:
@@ -223,19 +252,20 @@ class Bluetooth:
         """
         Operate based on command.
         """
-        if self.operation == 'autonomous':
-            start_time = time.time()
-            self.autonomous()
-            print(f"autonomous time delay: {time.time() - start_time}")
+        self.autonomous()
+        # if self.operation == 'autonomous':
+        #     start_time = time.time()
+        #     self.autonomous()
+        #     print(f"autonomous time delay: {time.time() - start_time}")
 
-        elif self.operation == 'manual':
-            print("loop manual")
-            self.manual()
-            time.sleep(0.1)
+        # elif self.operation == 'manual':
+        #     print("loop manual")
+        #     self.manual()
+        #     time.sleep(0.1)
         
-        elif self.operation is None:
-            self.frisbeast.stop()
-            self.aim.stop()
+        # elif self.operation is None:
+        #     self.frisbeast.stop()
+        #     self.aim.stop()
 
     def cleanup(self):
         """
@@ -243,7 +273,8 @@ class Bluetooth:
         """
         # imu.cleanup()
         # self.throw.stop_motor()
-        self.aim.stop()
+        # self.aim.stop()
+        self.frisbeast.stop()
         self.cv.cap_release()
         cv2.destroyAllWindows()
         GPIO.cleanup()
@@ -254,26 +285,26 @@ class Bluetooth:
         Runs a background loop while Bluetooth listens for data.
         """
         while True:
-            # self.operate()
+            self.operate()
 
-            # Check Bluetooth device is connected
-            if self.connected:
+            # # Check Bluetooth device is connected
+            # if self.connected:
 
-                # Check if new data is received
-                if self.received_data:
+            #     # Check if new data is received
+            #     if self.received_data:
                 
-                    # Process data
-                    self.process_data()
+            #         # Process data
+            #         self.process_data()
                     
-                    # Reset after processing
-                    self.received_data = None
-                    self.processed_data = None
+            #         # Reset after processing
+            #         self.received_data = None
+            #         self.processed_data = None
 
-                # Operate based on command
-                self.operate()
+            #     # Operate based on command
+            #     self.operate()
 
-                # Prevent excessive CPU usage
-                # time.sleep(0.1)
+            #     # Prevent excessive CPU usage
+            #     # time.sleep(0.1)
 
 
 if __name__ == '__main__':
