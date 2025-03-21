@@ -68,8 +68,10 @@ class Frisbeast():
 
         self.AIM_P_CALIBRATION = 1
         self.AIM_D_CALIBRATION = 1
-        self.AIM_P_NORM = 3.5
-        self.AIM_D_NORM = 5
+        # self.AIM_P_NORM = 1.5
+        # self.AIM_D_NORM = 4
+        self.AIM_P_NORM = 1
+        self.AIM_D_NORM = 2.5
         self.AIM_P = self.AIM_P_CALIBRATION
         self.AIM_D = self.AIM_D_CALIBRATION
         
@@ -151,6 +153,7 @@ class Frisbeast():
     
     def stop(self):
         self.angle_active.clear()
+        self.yaw_active.clear()
         # replace below with centering before stopping
         self.aiming_motor.stop()
         # replace below with move until end before stopping
@@ -161,11 +164,13 @@ class Frisbeast():
         self.shooting_motor.stop()
 
     def calibrate_aiming(self):
-        self.aiming_motor.left(30)
+        self.aiming_motor.left(45)
         self.aiming_motor.stopped.wait()
         left_angle = self.imu.yaw
         left_angle = (left_angle + 360) % 360
-        self.aiming_motor.right(30)
+        time.sleep(0.25)
+        self.aiming_motor.right(45)
+        time.sleep(0.25)
         self.aiming_motor.stopped.wait()
         right_angle = self.imu.yaw
         right_angle = (right_angle + 360) % 360
@@ -205,11 +210,11 @@ class Frisbeast():
             goal = self.origin + self.goal_yaw
 
             # BELOW IS TO LIMIT THE TRAVEL FOR SYMPOSIUM
-            # if abs(goal - (self.middle_angle + self.origin)) > 60:
-            #     if goal > (self.middle_angle + self.origin):
-            #         goal = self.middle_angle + self.origin + 60
-            #     else:
-            #         goal = self.middle_angle + self.origin - 60
+            if abs(goal - (self.middle_angle + self.origin)) > 10:
+                if goal > (self.middle_angle + self.origin):
+                    goal = self.middle_angle + self.origin + 10
+                else:
+                    goal = self.middle_angle + self.origin - 10
             # NEED SOMETHING TO FIX STROBING
 
             angle = self.imu.yaw
@@ -247,6 +252,10 @@ class Frisbeast():
     
     def fix_angle(self, error, timestamp):
         if error is None:
+            self.yaw_active.clear()
+            self.aiming_motor.stop()
+            return
+        
             if not self.aiming_motor.strobing_mode.is_set() or self.yaw_active.is_set():
                 print("yaw_active clear")
                 self.yaw_active.clear()
@@ -307,18 +316,28 @@ class Frisbeast():
         self.calibrating.clear()
 
     def home(self):
-        home_angle_thread = threading.Thread(target=self.set_level, args=(self.middle_angle,))
-        home_angle_thread.start()
-        threads = [
-            self.right_actuator.move_to_bottom(wait=False),
-            self.left_back_actuator.move_to_bottom(wait=False),
-            self.left_front_actuator.move_to_bottom(wait=False),
-            home_angle_thread,
-        ]
-        for thread in threads:
-            thread.join()
-
-        print("Finished calibration")
+        self.goal_yaw = self.middle_angle
+        self.yaw_active.set()
+        self.goal_pitch = 0
+        self.goal_roll = 0
+        self.angle_active.set()
+        self.level.wait()
+        self.yaw_stable.wait()
+        # home_angle_thread = threading.Thread(target=self.set_level, args=(self.middle_angle,))
+        # home_angle_thread.start()
+        
+        # threads = [
+        #     self.right_actuator.move_to_bottom(wait=False),
+        #     self.left_back_actuator.move_to_bottom(wait=False),
+        #     self.left_front_actuator.move_to_bottom(wait=False),
+        #     # home_angle_thread,
+        # ]
+        # for thread in threads:
+        #     thread.join()
+        self.aiming_motor.stopped.wait()
+        self.yaw_active.clear()
+        self.angle_active.clear()
+        print("Finished homing")
     
     def push_frisbee(self, distance, pose_estimation):
         """
@@ -329,15 +348,17 @@ class Frisbeast():
         """
         
         current_time = time.time()
-        if pose_estimation in ('centered and throw identified', 'Direction:Throw') and 7.5 >= distance >= 3.5 and self.level.is_set():
+        if pose_estimation in ('centered and throw identified', 'Direction:Throw') and 7.5 >= distance >= 3 and self.level.is_set():
             if current_time - self.last_activation_time >= 5 and self.hand_raised:
                 print("Solenoid Activated")
                 self.push_motor.forward(100)
-                time.sleep(0.33)
+                # time.sleep(0.33)
+                time.sleep(0.5)
                 self.push_motor.stop()
 
                 self.last_activation_time = current_time
                 self.hand_raised = False
+                return True
             elif current_time - self.last_activation_time < 5:
                 print("Cooldown active, solenoid not triggered.")
                 self.hand_raised = False
@@ -348,6 +369,16 @@ class Frisbeast():
             print('Too close')
         else:
             self.hand_raised = False
+            if pose_estimation == "MANUAL":
+                print("Solenoid Activated")
+                self.push_motor.forward(100)
+                # time.sleep(0.33)
+                time.sleep(0.5)
+                self.push_motor.stop()
+
+                self.last_activation_time = current_time
+                self.hand_raised = False
+                return True
 
     def activate_angle(self):
         self.angle_active.set()
@@ -401,7 +432,7 @@ class Frisbeast():
             pitch_error = self.goal_pitch - pitch
             roll_error = self.goal_roll - roll
 
-            if abs(pitch_error) < 0.4 and abs(roll_error) < 0.4:
+            if abs(pitch_error) < 0.5 and abs(roll_error) < 0.5:
                 self.left_back_actuator.stop()
                 self.left_front_actuator.stop()
                 self.level.set()

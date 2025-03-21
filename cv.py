@@ -41,6 +41,7 @@ class CV():
             self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
             self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 360)
 
+        self.active = threading.Event()
         self.lock = threading.Lock()
         self.q = queue.Queue()
         t = threading.Thread(target=self._reader)
@@ -60,6 +61,7 @@ class CV():
 
     def _reader(self):
         while True:
+            # self.active.wait()
             with self.lock:
                 grab_time = time.time()
                 ret = self.cap.grab()
